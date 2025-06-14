@@ -1,0 +1,200 @@
+﻿@{
+    ViewBag.Title = "Lista de Movimientos Financieros";
+    var movimientos = ViewBag.Movimientos as List<dynamic>;
+
+    int? anio = ViewBag.Anio as int?;
+    int? mes = ViewBag.Mes as int?;
+    int? dia = ViewBag.Dia as int?;
+    int pageNumber = ViewBag.PageNumber ?? 1;
+
+    string anioStr = anio?.ToString() ?? "";
+    string mesStr = mes?.ToString() ?? "";
+    string diaStr = dia?.ToString() ?? "";
+
+    int maxDia = 31;
+    if (anio.HasValue && mes.HasValue && mes >= 1 && mes <= 12)
+    {
+        maxDia = DateTime.DaysInMonth(anio.Value, mes.Value);
+    }
+}
+
+<div class="container mt-4">
+    <h2>Movimientos Financieros</h2>
+
+    <!-- Botón Horizontal: Opciones Administración -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group" aria-label="Opciones Administración">
+                <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-primary">Resumen</a>
+                <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary">Trabajadores</a>
+                <a href="@Url.Action("Index", "Proveedor")" class="btn btn-outline-secondary">Proveedor</a>
+                <a href="@Url.Action("Index", "Finanzas")" class="btn btn-outline-secondary">Finanzas</a>
+                <a href="@Url.Action("Index", "CajaDiaria")" class="btn btn-outline-secondary">Caja Diaria</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros: Formulario en fila completa -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <form class="row g-3" method="get" id="filtroForm">
+                <div class="col-md-3">
+                    <label for="anio" class="form-label">Año</label>
+                    <input type="number"
+                           class="form-control"
+                           name="anio"
+                           id="anio"
+                           value="@anioStr"
+                           min="2000" max="@DateTime.Now.Year"
+                           placeholder="Ej: 2025">
+                </div>
+                <div class="col-md-3">
+                    <label for="mes" class="form-label">Mes</label>
+                    <select class="form-select" name="mes" id="mes">
+                        <option value="">-- Todos --</option>
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            if (mes == i)
+                            {
+                                <option value="@i" selected>
+                                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="@i">
+                                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="dia" class="form-label">Día</label>
+                    <select class="form-select" name="dia" id="dia"
+                    @if (mes == null || anio == null)
+                    {
+                        <text>disabled="disabled"</text>
+                    }>
+                        <option value="">-- Todos --</option>
+                        @for (int d = 1; d <= maxDia; d++)
+                        {
+                            if (dia == d)
+                            {
+                                        <option value="@d" selected>@d</option>
+                            }
+                            else
+                            {
+                                        <option value="@d">@d</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido: Tabla y Paginador -->
+    <div class="row">
+        <div class="col-12">
+            <table class="table table-bordered table-hover table-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Tipo</th>
+                        <th>Responsable</th>
+                        <th>Método Pago</th>
+                        <th class="text-end">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (movimientos != null && movimientos.Any())
+                    {
+                        foreach (var m in movimientos)
+                        {
+                            <tr>
+                                <td>@m.IdMovimiento</td>
+                                <td>@m.FechaCorta</td>
+                                <td>@m.Hora</td>
+                                <td>@m.TipoMovimiento</td>
+                                <td>@m.Responsable</td>
+                                <td>@m.MetodoPago</td>
+                                <td class="text-end">@String.Format("{0:C}", m.Monto)</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center">No se encontraron movimientos.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <nav aria-label="Paginador">
+                <ul class="pagination justify-content-center">
+                    @{
+                        int prevPage = pageNumber > 1 ? pageNumber - 1 : 1;
+                        int nextPage = pageNumber + 1;
+                        string queryString = $"&anio={anioStr}&mes={mesStr}&dia={diaStr}";
+                    }
+                    <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
+                        <a class="page-link" href="?pageNumber=@prevPage@queryString">Anterior</a>
+                    </li>
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Página @pageNumber
+                        </span>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?pageNumber=@nextPage@queryString">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function actualizarDias() {
+            const anioInput = document.getElementById('anio');
+            const mesSelect = document.getElementById('mes');
+            const diaSelect = document.getElementById('dia');
+
+            const anio = parseInt(anioInput.value);
+            const mes = parseInt(mesSelect.value);
+
+            if (!anio || !mes || mes < 1 || mes > 12) {
+                diaSelect.innerHTML = '<option value="">-- Todos --</option>';
+                diaSelect.disabled = true;
+                return;
+            }
+
+            const diasEnMes = new Date(anio, mes, 0).getDate();
+            const valorActual = diaSelect.value;
+
+            let options = '<option value="">-- Todos --</option>';
+            for (let d = 1; d <= diasEnMes; d++) {
+                options += `<option value="${d}">${d}</option>`;
+            }
+            diaSelect.innerHTML = options;
+            diaSelect.disabled = false;
+
+            if (valorActual && valorActual <= diasEnMes) {
+                diaSelect.value = valorActual;
+            }
+        }
+
+        document.getElementById('anio').addEventListener('input', actualizarDias);
+        document.getElementById('mes').addEventListener('change', actualizarDias);
+
+        window.onload = actualizarDias;
+    </script>
+}

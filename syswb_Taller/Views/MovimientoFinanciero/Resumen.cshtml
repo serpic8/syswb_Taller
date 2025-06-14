@@ -1,0 +1,165 @@
+﻿@using System.Globalization
+@removeTagHelper "Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers"
+@{
+    ViewData["Title"] = "Resumen Mensual";
+
+    // Cultura de Nicaragua
+    var nicaragua = new CultureInfo("es-NI");
+
+    // Valores desde ViewBag
+    var ingresos = (double)ViewBag.TotalIngresos;
+    var egresos = (double)ViewBag.TotalEgresos;
+    var balance = (double)ViewBag.Balance;
+    var actividades = (List<syswb_Taller.Models.MovimientoFinanciero>)ViewBag.Actividades;
+    var ordenes = (List<dynamic>)ViewBag.Ordenes;
+
+    // Filtros actuales
+    int selYear = (int)(ViewBag.SelectedYear ?? DateTime.Today.Year);
+    int selMonth = (int)(ViewBag.SelectedMonth ?? DateTime.Today.Month);
+
+    // Listas para dropdowns
+    var years = Enumerable.Range(DateTime.Today.Year - 5, 6).Reverse().ToList();
+    var months = Enumerable.Range(1, 12)
+                  .Select(m => new { Value = m, Name = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m) })
+                  .ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Grupo de botones -->
+    <div class="btn-group" role="group" aria-label="Opciones Administración">
+        <a asp-action="Resumen" class="btn btn-outline-primary @(ViewContext.RouteData.Values["action"].ToString()=="Resumen"?"active":"")">Resumen</a>
+        <a asp-controller="Trabajadores" asp-action="Index" class="btn btn-outline-primary">Trabajadores</a>
+        <a asp-controller="Proveedor" asp-action="Index" class="btn btn-outline-primary">Proveedor</a>
+        <a asp-controller="Finanzas" asp-action="Index" class="btn btn-outline-primary">Finanzas</a>
+        <a asp-controller="CajaDiaria" asp-action="Index" class="btn btn-outline-primary">CajaDiaria</a>
+    </div>
+
+    <!-- Formulario de filtros Mes/Año -->
+    <form asp-action="Resumen" method="get" class="form-inline">
+        <div class="form-group mr-2">
+            <label for="mes" class="mr-1">Mes</label>
+            <select id="mes" name="mes" class="form-control">
+                @{
+                    foreach (var m in months)
+                    {
+                        var selected = m.Value == selMonth ? " selected" : "";
+                        <text>
+                        <option value="@m.Value" @selected>
+                                @CultureInfo.CurrentCulture.TextInfo.ToTitleCase(m.Name)
+                        </option>
+                        </text>
+                    }
+                }
+            </select>
+        </div>
+        <div class="form-group mr-2">
+            <label for="anio" class="mr-1">Año</label>
+            <select id="anio" name="anio" class="form-control">
+                @{
+                    foreach (var y in years)
+                    {
+                        var selected = y == selYear ? " selected" : "";
+                        <text>
+                        <option value="@y" @selected>@y</option>
+                        </text>
+                    }
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+    </form>
+</div>
+
+<h2 class="mb-4">
+    @ViewData["Title"] - @CultureInfo.CurrentCulture.TextInfo.ToTitleCase(
+    new DateTime(selYear, selMonth, 1).ToString("MMMM yyyy", nicaragua)
+    )
+</h2>
+
+<div class="row text-center mb-5">
+    <div class="col-md-4">
+        <div class="card-body">
+            <h5>Ingresos</h5>
+            <p class="display-4">@ingresos.ToString("C2", nicaragua)</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-body">
+            <h5>Egresos</h5>
+            <p class="display-4">@egresos.ToString("C2", nicaragua)</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-body">
+            <h5>Balance</h5>
+            <p class="display-4">@balance.ToString("C2", nicaragua)</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Actividades -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                Últimos Movimientos
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th class="text-right">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var mv in actividades)
+                        {
+                            <tr>
+                                <td>@mv.MovFecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@mv.MvTipoMovimiento</td>
+                                <td class="text-right">@mv.MovMonto.ToString("C2", nicaragua)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Órdenes -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                Órdenes Recientes
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Creación</th>
+                            <th>Estado</th>
+                            <th>Pago</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in ordenes)
+                        {
+                            <tr>
+                                <td>@o.IdOrden</td>
+                                <td>@((DateTime)o.OrFechaCreacion).ToString("dd/MM/yyyy")</td>
+                                <td>@o.OrEstado</td>
+                                <td>
+                                    @((DateTime)o.FechaPago).ToString("dd/MM/yyyy")<br />
+                                    <span class="text-right d-block">@((decimal)o.MontoPagado).ToString("C2", nicaragua)</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
