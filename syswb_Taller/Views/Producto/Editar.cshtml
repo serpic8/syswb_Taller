@@ -10,8 +10,8 @@
     <div class="btn-group mb-4" role="group" aria-label="Opciones Producto">
         <a href="@Url.Action("DetalleProducto","Producto", new { id = Model.IdProducto })" class="btn btn-outline-primary">Detalle Producto</a>
         <a href="@Url.Action("IncrementarStock","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Stock</a>
-        <a href="@Url.Action("Proveedores","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Proveedores</a>
-        <a href="@Url.Action("Historial","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Historial</a>
+        <a href="@Url.Action("ProveedoresProducto","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Proveedores</a>
+        <a href="@Url.Action("HistorialProducto","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Historial</a>
     </div>
 
     @if (TempData["SuccessMessage"] != null)

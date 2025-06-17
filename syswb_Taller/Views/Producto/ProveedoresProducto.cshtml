@@ -1,0 +1,30 @@
+﻿@model IEnumerable<syswb_Taller.Models.ProveedorProducto>
+
+<h2>Proveedores del Producto</h2>
+
+@if (Model != null && Model.Any())
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID Proveedor</th>
+                <th>Proveedor</th>
+                <th>Precio de Referencia</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var pp in Model)
+            {
+                <tr>
+                    <td>@pp.IdProveedor</td>
+                    <td>@pp.IdProveedorNavigation.PNombre</td>
+                    <td>@pp.PrecioRef.ToString("F2")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No hay proveedores activos para este producto.</p>
+}

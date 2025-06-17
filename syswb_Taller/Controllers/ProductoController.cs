@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
+using System.Dynamic;
 using syswb_Taller.Models;
 
 namespace syswb_Taller.Controllers
@@ -17,6 +18,7 @@ namespace syswb_Taller.Controllers
         }
 
 
+        #region Lista y Crear
         private async Task<bool> ObtenerActivo(int idProducto)
         {
             // Creamos una nueva conexión para evitar problemas de MARS
@@ -176,65 +178,90 @@ namespace syswb_Taller.Controllers
             );
             return RedirectToAction(nameof(Lista));
         }
+        #endregion
 
 
+        #region Stock y Eliminar Stock
         // Dentro de ProductoController.cs
         [HttpGet]
         public async Task<IActionResult> IncrementarStock(int id)
         {
-            // 1) Recuperar el producto
+            // 1) Primero recuperamos el producto
             var producto = await _bdTallerContext.ProductoRepuestos
                 .FirstOrDefaultAsync(p => p.IdProducto == id);
             if (producto == null) return NotFound();
 
-            // 2) Cargar proveedores en ViewBag.Proveedores (ya lo tienes)
+            // 2) Carga de proveedores relacionados y activos utilizando procedimiento almacenado
+            var proveedores = new List<Proveedor>();
 
-            // 3) Cargar las últimas compras de este producto
-            //    Vamos a traer las 5 compras más recientes:
-            var ultimasCompras = new List<dynamic>();
             var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
-            // … dentro de la acción IncrementarStock(GET) …
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "Get_ProveedoresPorProducto";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idProducto", id));
+
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var prov = new Proveedor
+                        {
+                            IdProveedor = reader.GetInt32(0),
+                            PNombre = reader.GetString(1),
+                            // puedes leer otros campos como precio referencia si necesitas
+                        };
+                        proveedores.Add(prov);
+                    }
+                }
+            }
+            ViewBag.Proveedores = proveedores;
+
+            // 3) Carga de últimas compras (como lo tienes actualmente)
+
+            var ultimasCompras = new List<dynamic>();
 
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = @"
-    SELECT TOP 5 
-      cp.idCompra, 
-      cp.compFecha, 
-      cpro.cproCantidad,
-      cpro.idProveedor, 
-      pr.pNombre         AS ProveedorNombre,
-      cp.cprActivo       AS CprActivo      -- <--- lo agregamos aquí
-    FROM Compra_Proveedores cp
-    JOIN Compra_Producto   cpro ON cpro.idCompra = cp.idCompra
-    LEFT JOIN Proveedor     pr   ON pr.idProveedor = cpro.idProveedor
-    WHERE cpro.idProducto = @idProducto
-    ORDER BY cp.compFecha DESC";
+                SELECT TOP 5 
+                  cp.idCompra, 
+                  cp.compFecha, 
+                  cpro.cproCantidad,
+                  cpro.idProveedor, 
+                  pr.pNombre         AS ProveedorNombre,
+                  cp.cprActivo       AS CprActivo
+                FROM Compra_Proveedores cp
+                JOIN Compra_Producto cpro ON cpro.idCompra = cp.idCompra
+                LEFT JOIN Proveedor pr ON pr.idProveedor = cpro.idProveedor
+                WHERE cpro.idProducto = @idProducto
+                ORDER BY cp.compFecha DESC";
                 cmd.Parameters.Add(new SqlParameter("@idProducto", id));
 
-                using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+                using (var reader = await cmd.ExecuteReaderAsync())
                 {
-                    ultimasCompras.Add(new
+                    while (await reader.ReadAsync())
                     {
-                        IdCompra = reader.GetInt32(0),
-                        CompFecha = reader.GetDateTime(1).ToString("g"),
-                        CproCantidad = reader.GetInt32(2),
-                        IdProveedor = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3),
-                        ProveedorNombre = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        CprActivo = reader.GetBoolean(5)    // <-- y lo leemos aquí
-                    });
+                        ultimasCompras.Add(new
+                        {
+                            IdCompra = reader.GetInt32(0),
+                            CompFecha = reader.GetDateTime(1).ToString("g"),
+                            CproCantidad = reader.GetInt32(2),
+                            IdProveedor = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3),
+                            ProveedorNombre = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            CprActivo = reader.GetBoolean(5)
+                        });
+                    }
                 }
             }
-
-
             ViewBag.UltimasCompras = ultimasCompras;
 
-            // 4) Devolver la vista con el modelo ProductoRepuesto
+            // 4) Finalmente regresamos la vista
             return View(producto);
         }
+
 
 
 
@@ -303,6 +330,48 @@ namespace syswb_Taller.Controllers
             }
             return RedirectToAction("Lista"); // Esto vuelve al listado de compras
         }
+        #endregion
+        
+        
+        [HttpGet]
+        public async Task<IActionResult> ProveedoresProducto(int idProducto)
+        {
+            var proveedores = await _bdTallerContext.ProveedorProductos
+                .Where(pp => pp.IdProducto == idProducto && pp.Activo && pp.IdProveedorNavigation.PActivo)
+                .Include(pp => pp.IdProveedorNavigation) // carga el proveedor relacionado
+                .AsNoTracking()
+                .ToListAsync();
+
+            return View(proveedores);
+        }
+
+
+
+        [HttpGet]
+        public async Task<IActionResult> HistorialProducto(int idProducto)
+        {
+            // Abre la conexión ADO.NET
+            var conn = _bdTallerContext.Database.GetDbConnection();
+            await conn.OpenAsync();
+
+            // Crea comando para el SP
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "Get_HistorialProducto";
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@idProducto", SqlDbType.Int) { Value = idProducto });
+
+            // Ejecuta y llena DataTable
+            var dt = new DataTable();
+            using (var reader = await cmd.ExecuteReaderAsync())
+            {
+                dt.Load(reader);
+            }
+
+            return View(dt);
+        }
+
+
+
 
     }
 
@@ -319,7 +388,7 @@ namespace syswb_Taller.Controllers
     }
 
 
-    //Eliminar Stock
+    
     
 
 }

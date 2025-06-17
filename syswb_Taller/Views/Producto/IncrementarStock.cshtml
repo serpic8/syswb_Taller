@@ -9,7 +9,7 @@
 <div class="btn-group mb-4" role="group" aria-label="Opciones Producto">
     <a href="@Url.Action("DetalleProducto","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Detalle Producto</a>
     <a href="@Url.Action("IncrementarStock","Producto", new { id = Model.IdProducto })" class="btn btn-outline-primary">Stock</a>
-    <a href="@Url.Action("Proveedores","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Proveedores</a>
+    <a href="@Url.Action("ProveedoresProducto","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Proveedores</a>
     <a href="@Url.Action("Historial","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Historial</a>
 </div>
 
