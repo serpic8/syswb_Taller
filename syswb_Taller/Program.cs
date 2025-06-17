@@ -32,6 +32,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=MovimientoFinanciero}/{action=ListaMovimientos}/{id?}");
+    pattern: "{controller=Producto}/{action=Lista}/{id?}");
 
 app.Run();

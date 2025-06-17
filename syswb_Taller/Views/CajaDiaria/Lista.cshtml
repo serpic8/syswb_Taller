@@ -1,0 +1,139 @@
+﻿@{
+    ViewBag.Title = "Resumen de Caja Diaria";
+
+    var resumen = ViewBag.Resumen as List<dynamic>;
+    int anio = ViewBag.SelectedYear;
+    int mes = ViewBag.SelectedMonth;
+    bool cajaAbierta = ViewBag.CajaAbierta ?? false;
+
+    string anioStr = anio.ToString();
+    string mesStr = mes.ToString();
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <script>
+        alert("@TempData["SuccessMessage"]");
+    </script>
+}
+
+<div class="container mt-4">
+    <h2>Resumen de Caja Diaria</h2>
+
+    <!-- Botón Horizontal: Opciones Administración -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group" aria-label="Opciones Administración">
+                <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-secondary">Resumen</a>
+                <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary">Trabajadores</a>
+                <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary">Proveedor</a>
+                <a href="@Url.Action("ListaMovimientos", "MovimientoFinanciero")" class="btn btn-outline-secondary">Finanzas</a>
+                <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-outline-primary">Caja Diaria</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón Abrir/Cerrar Caja -->
+    <div class="mb-4">
+        @if (!cajaAbierta)
+        {
+            <form asp-action="AbrirCaja" asp-controller="CajaDiaria" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="anio" value="@anio" />
+                <input type="hidden" name="mes" value="@mes" />
+                <button type="submit" class="btn btn-success">
+                    Abrir Caja
+                </button>
+            </form>
+        }
+        else
+        {
+            <form asp-action="CerrarCaja" asp-controller="CajaDiaria" method="post" class="d-inline"
+                  onsubmit="return confirm('¿Está seguro de que desea cerrar la caja? Esta acción no se puede deshacer.');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="anio" value="@anio" />
+                <input type="hidden" name="mes" value="@mes" />
+                <button type="submit" class="btn btn-danger">
+                    Cerrar Caja
+                </button>
+            </form>
+        }
+    </div>
+
+    <!-- Filtros: Año y Mes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <form class="row g-3" method="get">
+                <div class="col-md-4">
+                    <label for="anio" class="form-label">Año</label>
+                    <input type="number"
+                           class="form-control"
+                           name="anio"
+                           id="anio"
+                           value="@anioStr"
+                           min="2000" max="@DateTime.Now.Year"
+                           placeholder="Ej: 2025">
+                </div>
+                <div class="col-md-4">
+                    <label for="mes" class="form-label">Mes</label>
+                    <select class="form-select" name="mes" id="mes">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            if (mes == i)
+                            {
+                                <option value="@i" selected>
+                                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="@i">
+                                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido: Tabla Resumen -->
+    <div class="row">
+        <div class="col-12">
+            <table class="table table-bordered table-hover table-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fecha</th>
+                        <th class="text-end">Ingreso</th>
+                        <th class="text-end">Egreso</th>
+                        <th class="text-end">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (resumen != null && resumen.Any())
+                    {
+                        foreach (var r in resumen)
+                        {
+                            <tr onclick="location.href='@Url.Action("Detalle", "CajaDiaria", new { fecha = r.Fecha.ToString("yyyy-MM-dd") })'" style="cursor:pointer;">
+                                <td>@r.Fecha.ToString("yyyy-MM-dd")</td>
+                                <td class="text-end">@r.Ingreso.ToString("C")</td>
+                                <td class="text-end">@r.Egreso.ToString("C")</td>
+                                <td class="text-end">@r.Balance.ToString("C")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center">No hay registros para este mes.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

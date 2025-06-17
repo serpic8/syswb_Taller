@@ -1,0 +1,93 @@
+﻿@model List<syswb_Taller.Models.Proveedor>
+@{
+    ViewBag.Title = "Lista de Proveedores";
+
+    var proveedores = Model ?? new List<syswb_Taller.Models.Proveedor>();
+    string nombre = ViewBag.NombreFiltro as string ?? "";
+    bool? activo = ViewBag.ActivoFiltro as bool?;
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <script>
+        alert("@TempData["SuccessMessage"]");
+    </script>
+}
+
+<div class="container mt-4">
+    <h2>Lista de Proveedores</h2>
+
+    <!-- Botón Horizontal: Opciones Administración -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-secondary">Resumen</a>
+                <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary">Trabajadores</a>
+                <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-primary">Proveedor</a>
+                <a href="@Url.Action("ListaMovimientos", "MovimientoFinanciero")" class="btn btn-outline-secondary">Finanzas</a>
+                <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-outline-secondary">Caja Diaria</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón Crear Proveedor -->
+    <div class="mb-3">
+        <a href="@Url.Action("Detalle", "Proveedor")" class="btn btn-success">Crear Nuevo Proveedor</a>
+    </div>
+
+    <!-- Filtros: Nombre y Activo -->
+    <form class="row g-3 mb-4" method="get">
+        <div class="col-md-5">
+            <label for="nombre" class="form-label">Nombre</label>
+            <input type="text" class="form-control" id="nombre" name="nombre"
+                   placeholder="Ej: Distribuidora XYZ" value="@nombre" />
+        </div>
+        <div class="col-md-3">
+            <label for="activo" class="form-label">Estado</label>
+            <select class="form-select" id="activo" name="activo">
+                <option value="">-- Todos --</option>
+                <!option value="true" @(activo == true ? "selected" : "")>Activo</!option>
+                <!option value="false" @(activo == false ? "selected" : "")>Inactivo</!option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+        </div>
+    </form>
+
+    <!-- Tabla -->
+    <div class="row">
+        <div class="col-12">
+            <table class="table table-bordered table-hover table-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Activo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (proveedores.Any())
+                    {
+                        foreach (var p in proveedores)
+                        {
+                            <tr onclick="location.href='@Url.Action("Editar", "Proveedor", new { id = p.IdProveedor })'"
+                                style="cursor:pointer;">
+                                <td>@p.PNombre</td>
+                                <td>@p.PTelefono</td>
+                                <td>@(p.PActivo ? "Sí" : "No")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center">No se encontraron proveedores.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>

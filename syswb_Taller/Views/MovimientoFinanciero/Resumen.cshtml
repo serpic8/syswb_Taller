@@ -26,16 +26,23 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <!-- Grupo de botones -->
-    <div class="btn-group" role="group" aria-label="Opciones Administración">
-        <a asp-action="Resumen" class="btn btn-outline-primary @(ViewContext.RouteData.Values["action"].ToString()=="Resumen"?"active":"")">Resumen</a>
-        <a asp-controller="Trabajadores" asp-action="Index" class="btn btn-outline-primary">Trabajadores</a>
-        <a asp-controller="Proveedor" asp-action="Index" class="btn btn-outline-primary">Proveedor</a>
-        <a asp-controller="Finanzas" asp-action="Index" class="btn btn-outline-primary">Finanzas</a>
-        <a asp-controller="CajaDiaria" asp-action="Index" class="btn btn-outline-primary">CajaDiaria</a>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group" aria-label="Opciones Administración">
+                <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-primary">Resumen</a>
+                <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary">Trabajadores</a>
+                <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary">Proveedor</a>
+                <a href="@Url.Action("ListaMovimientos", "MovimientoFinanciero")" class="btn btn-outline-secondary">Finanzas</a>
+                <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-outline-secondary">Caja Diaria</a>
+            </div>
+        </div>
     </div>
 
     <!-- Formulario de filtros Mes/Año -->
-    <form asp-action="Resumen" method="get" class="form-inline">
+   
+</div>
+
+ <form asp-action="Resumen" method="get" class="form-inline">
         <div class="form-group mr-2">
             <label for="mes" class="mr-1">Mes</label>
             <select id="mes" name="mes" class="form-control">
@@ -68,7 +75,6 @@
         </div>
         <button type="submit" class="btn btn-primary">Filtrar</button>
     </form>
-</div>
 
 <h2 class="mb-4">
     @ViewData["Title"] - @CultureInfo.CurrentCulture.TextInfo.ToTitleCase(

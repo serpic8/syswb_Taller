@@ -1,0 +1,95 @@
+﻿@model List<syswb_Taller.Models.ProductoRepuesto>
+@{
+    ViewBag.Title = "Lista de Productos";
+}
+
+<h2>Lista de Productos</h2>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label">Nombre</label>
+        <input name="nombre" class="form-control" value="@ViewBag.FiltroNombre" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Marca</label>
+        <input name="marca" class="form-control" value="@ViewBag.FiltroMarca" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Categoría</label>
+        <input name="categoria" class="form-control" value="@ViewBag.FiltroCategoria" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Activo</label>
+        <select name="activo" class="form-select">
+            <option value="">-- Todos --</option>
+            <!option value="true" @(ViewBag.FiltroActivo == true ? "selected" : "")>Sí<!/option>
+            <!option value="false" @(ViewBag.FiltroActivo == false ? "selected" : "")>No<!/option>
+        </select>
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-action="Crear" class="btn btn-success">Crear Nuevo Producto</a>
+</div>
+
+<table class="table table-bordered table-hover table-sm">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Marca</th>
+            <th>Categoría</th>
+            <th class="text-end">Costo</th>
+            <th class="text-end">Precio Venta</th>
+            <th class="text-end">Stock</th>
+            <th class="text-center">Activo</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Any())
+        {
+            foreach (var p in Model)
+            {
+                <tr ondblclick="window.location='@Url.Action("Editar", "Producto", new { id = p.IdProducto })'" style="cursor:pointer;">
+                    <td>@p.IdProducto</td>
+                    <td>@p.PrNombre</td>
+                    <td>@p.PrMarca</td>
+                    <td>@p.PrCategoria</td>
+                    <td class="text-end">@((p.PrCosto.HasValue ? p.PrCosto.Value : 0).ToString("C"))</td>
+                    <td class="text-end">@((p.PrPrecioVenta.HasValue ? p.PrPrecioVenta.Value : 0).ToString("C"))</td>
+                    <td class="text-end">@p.PrStock</td>
+                    <td class="text-center">
+                        <form asp-action="Toggle" method="post" class="d-inline" onclick="event.stopPropagation();">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@p.IdProducto" />
+                            <button type="submit" class="btn btn-sm p-0" onclick="event.stopPropagation();">
+                                @if (p.PrActivo)
+                                {
+                                    <span class="text-success">&#10003;</span>
+
+                                    <!-- Check -->
+                                }
+                                else
+                                {
+                                    <span class="text-danger">&#10007;</span>
+
+                                    <!-- X -->
+                                }
+                            </button>
+                        </form>
+                    </td>
+
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="8" class="text-center">No se encontraron productos.</td>
+            </tr>
+        }
+    </tbody>
+</table>

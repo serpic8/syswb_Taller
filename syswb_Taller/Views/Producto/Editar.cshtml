@@ -1,0 +1,56 @@
+﻿@model syswb_Taller.Models.ProductoRepuesto
+@{
+    ViewBag.Title = "Editar Producto";
+}
+
+<div class="container mt-4">
+    <h2>Editar Producto</h2>
+
+    <!-- Grupo de pestañas -->
+    <div class="btn-group mb-4" role="group" aria-label="Opciones Producto">
+        <a href="@Url.Action("DetalleProducto","Producto", new { id = Model.IdProducto })" class="btn btn-outline-primary">Detalle Producto</a>
+        <a href="@Url.Action("IncrementarStock","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Stock</a>
+        <a href="@Url.Action("Proveedores","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Proveedores</a>
+        <a href="@Url.Action("Historial","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Historial</a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+
+    <!-- Formulario edición -->
+    <form asp-action="Editar" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.IdProducto" />
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Nombre</label>
+                <input name="prNombre" value="@Model.PrNombre" class="form-control" required />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Marca</label>
+                <input name="prMarca" value="@Model.PrMarca" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Categoría</label>
+                <input name="prCategoria" value="@Model.PrCategoria" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Costo</label>
+                <input name="prCosto" type="number" step="0.01" value="@Model.PrCosto" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Precio Venta</label>
+                <input name="prPrecioVenta" type="number" step="0.01" value="@Model.PrPrecioVenta" class="form-control" />
+            </div>
+            <!-- Eliminado campo de stock del formulario -->
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <a asp-action="Lista" class="btn btn-secondary ms-2">Cancelar</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,30 @@
+﻿@model syswb_Taller.Models.Proveedor
+
+@{
+    ViewBag.Title = "Agregar Proveedor";
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <script>alert("@TempData["SuccessMessage"]");</script>
+}
+
+<div class="container mt-4">
+    <h2>Agregar Nuevo Proveedor</h2>
+
+    <form asp-action="Detalle" method="post">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label for="pNombre" class="form-label">Nombre</label>
+            <input type="text" class="form-control" id="pNombre" name="pNombre"
+                   placeholder="Ej: Distribuidora XYZ" required />
+        </div>
+        <div class="mb-3">
+            <label for="pTelefono" class="form-label">Teléfono</label>
+            <input type="text" class="form-control" id="pTelefono" name="pTelefono"
+                   placeholder="Ej: 1234-5678" required />
+        </div>
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>

@@ -1,0 +1,146 @@
+﻿@model syswb_Taller.Models.Proveedor
+@using syswb_Taller.Models
+
+@{
+    ViewBag.Title = "Editar Proveedor";
+    int idProveedor = Model.IdProveedor;
+    var todosProductos = ViewBag.TodosProductos as List<ProductoRepuesto> ?? new();
+    var asociados = ViewBag.ProductosAsociados as List<ProveedorProducto> ?? new();
+    var errorProd = TempData["ErrorProducto"] as string;
+}
+
+@if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+{
+    <script>alert("@TempData["SuccessMessage"]");</script>
+}
+@if (!string.IsNullOrEmpty(errorProd))
+{
+    <div class="alert alert-danger">@errorProd</div>
+}
+
+<div class="container mt-4">
+    <h2>Editar Proveedor</h2>
+    <form asp-action="Editar" method="post" class="mb-5">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@idProveedor" />
+
+        <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <input name="pNombre" class="form-control" value="@Model.PNombre" required />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Teléfono</label>
+            <input name="pTelefono" class="form-control" value="@Model.PTelefono" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        <a asp-action="Lista" class="btn btn-secondary ms-2">Cancelar</a>
+    </form>
+
+    <h3>Productos asociados</h3>
+
+    <!-- Form agregar -->
+    <form asp-action="AgregarProducto" method="post" class="row g-3 mb-4">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="idProveedor" value="@idProveedor" />
+        <div class="col-md-5">
+            <label class="form-label">Producto</label>
+            <select name="idProducto" class="form-select" required>
+                <option value="">-- Selecciona --</option>
+                @foreach (var pr in todosProductos)
+                {
+                    <option value="@pr.IdProducto">@pr.PrNombre</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Precio Ref.</label>
+            <input name="precioRef" type="number" step="0.01" class="form-control" required />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-success">Añadir</button>
+        </div>
+    </form>
+
+    <!-- Tabla de asociados -->
+    <table class="table table-bordered table-hover table-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Producto</th>
+                <th class="text-end">Precio Ref.</th>
+                <th class="text-center">Activo</th>
+                <th class="text-center">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (asociados.Any())
+            {
+                foreach (var pp in asociados)
+                {
+                    <tr>
+                        <td>@pp.IdProductoNavigation.PrNombre</td>
+                        <td class="text-end">@pp.PrecioRef.ToString("C")</td>
+                        <td class="text-center">@(pp.Activo ? "Sí" : "No")</td>
+                        <td class="text-center">
+                            <!-- Toggle -->
+                            <form asp-action="ToggleProducto" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="idProveedor" value="@idProveedor" />
+                                <input type="hidden" name="idProducto" value="@pp.IdProducto" />
+                                <button class="btn btn-sm @(pp.Activo ? "btn-warning" : "btn-success")">
+                                    @(pp.Activo ? "Desactivar" : "Activar")
+                                </button>
+                            </form>
+                            <!-- Modal precio -->
+                            <button class="btn btn-sm btn-outline-primary ms-1"
+                                    data-bs-toggle="modal" data-bs-target="#modal_@pp.IdProducto">
+                                Precio
+                            </button>
+                            <div class="modal fade" id="modal_@pp.IdProducto" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form asp-action="ActualizarProducto" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="idProveedor" value="@idProveedor" />
+                                            <input type="hidden" name="idProducto" value="@pp.IdProducto" />
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Editar Precio - @pp.IdProductoNavigation.PrNombre</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Precio Ref.</label>
+                                                    <input name="precioRef" type="number"
+                                                           step="0.01" class="form-control"
+                                                           value="@pp.PrecioRef" />
+                                                </div>
+                                                <div class="mb-3 form-check">
+                                                    <input name="activo" type="checkbox"
+                                                           class="form-check-input"
+                                                           id="chk_@pp.IdProducto"
+                                                           value="true" @(pp.Activo ? "checked" : "") />
+                                                    <label class="form-check-label" for="chk_@pp.IdProducto">
+                                                        Activo
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-primary">Guardar</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="4" class="text-center">No hay productos asociados.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

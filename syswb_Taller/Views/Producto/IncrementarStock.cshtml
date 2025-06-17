@@ -1,0 +1,106 @@
+﻿@model syswb_Taller.Models.ProductoRepuesto
+
+@{
+    ViewBag.Title = "Incrementar Stock";
+    var proveedores = ViewBag.Proveedores as List<syswb_Taller.Models.Proveedor>;
+    var ultimasCompras = ViewBag.UltimasCompras as List<dynamic> ?? new List<dynamic>();
+}
+
+<div class="btn-group mb-4" role="group" aria-label="Opciones Producto">
+    <a href="@Url.Action("DetalleProducto","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Detalle Producto</a>
+    <a href="@Url.Action("IncrementarStock","Producto", new { id = Model.IdProducto })" class="btn btn-outline-primary">Stock</a>
+    <a href="@Url.Action("Proveedores","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Proveedores</a>
+    <a href="@Url.Action("Historial","Producto", new { id = Model.IdProducto })" class="btn btn-outline-secondary">Historial</a>
+</div>
+
+<h2>Incrementar Stock de @Model.PrNombre</h2>
+
+<form asp-action="IncrementarStock" method="post">
+    @Html.AntiForgeryToken()
+    <input name="IdProducto" type="hidden" value="@Model.IdProducto" />
+
+    <div class="mb-3">
+        <label for="Cantidad" class="form-label">Cantidad</label>
+        <div class="input-group">
+            <button type="button" id="decrementBtn" class="btn btn-outline-secondary">-</button>
+            <input id="Cantidad" name="Cantidad" type="number" class="form-control" min="1" value="1" required />
+            <button type="button" id="incrementBtn" class="btn btn-outline-secondary">+</button>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="IdProveedor" class="form-label">Proveedor (opcional)</label>
+        <select id="IdProveedor" name="IdProveedor" class="form-select">
+            <option value="">-- Sin proveedor --</option>
+            @foreach (var prov in proveedores ?? Enumerable.Empty<dynamic>())
+            {
+                <option value="@prov.IdProveedor">@prov.PNombre</option>
+            }
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <button type="submit" name="accion" value="sumar" class="btn btn-primary me-2">Agregar</button>
+        <a asp-action="Lista" class="btn btn-secondary">Cancelar</a>
+    </div>
+</form>
+
+<h3>Últimas Compras</h3>
+<div class="list-group">
+    @if (ultimasCompras.Any())
+    {
+        foreach (var compra in ultimasCompras.Where(c => c.CprActivo))
+        {
+            <a class="list-group-item list-group-item-action delete-item" data-id="@compra.IdCompra" style="cursor:pointer;">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">Compra #@compra.IdCompra</h5>
+                    <small>@compra.CompFecha</small>
+                </div>
+                <p class="mb-1">Cantidad: @compra.CproCantidad</p>
+                <small>Proveedor: @(compra.IdProveedor != null ? compra.ProveedorNombre : "N/A")</small>
+            </a>
+        }
+    }
+
+    else
+    {
+        <div class="list-group-item">No hay compras recientes.</div>
+    }
+</div>
+
+@* Formularios ocultos para eliminación *@
+@foreach (var compra in ultimasCompras)
+{
+    <form id="delForm_@compra.IdCompra"
+          asp-controller="Producto"
+          asp-action="Eliminar"
+          method="post"
+          style="display:none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@compra.IdCompra" />
+    </form>
+
+}
+
+@section Scripts {
+    <script>
+        document.getElementById('decrementBtn').addEventListener('click', function () {
+            var qtyInput = document.getElementById('Cantidad');
+            var qty = parseInt(qtyInput.value) || 1;
+            if (qty > 1) qtyInput.value = qty - 1;
+        });
+        document.getElementById('incrementBtn').addEventListener('click', function () {
+            var qtyInput = document.getElementById('Cantidad');
+            var qty = parseInt(qtyInput.value) || 1;
+            qtyInput.value = qty + 1;
+        });
+        document.querySelectorAll('.delete-item').forEach(function (item) {
+            item.addEventListener('dblclick', function () {
+                var id = item.getAttribute('data-id');
+                if (confirm('¿Está Seguro de devolver?')) {
+                    document.getElementById('delForm_' + id).submit();
+                }
+            });
+        });
+    </script>
+}

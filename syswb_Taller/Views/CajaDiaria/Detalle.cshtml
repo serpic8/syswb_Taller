@@ -1,0 +1,98 @@
+﻿@{
+    ViewBag.Title = "Detalle de Caja Diaria";
+
+    int? idCaja = ViewBag.IdCaja as int?;
+    var ingresosEgresos = ViewBag.IngresosEgresos as List<dynamic>;
+    var detalleFinanzas = ViewBag.DetalleFinanzas as List<dynamic>;
+    DateTime? fecha = ViewBag.Fecha as DateTime?;
+}
+
+<div class="container mt-4">
+    <h2>
+        Detalle de Caja:
+        @if (idCaja != null)
+        {
+            @($"ID: {idCaja}")
+        }
+        else if (fecha != null)
+        {
+            @fecha.Value.ToString("yyyy-MM-dd")
+        }
+        else
+        {
+            @("No hay datos disponibles")
+        }
+    </h2>
+
+    <!-- Ingresos/Egresos del Día -->
+    <h4 class="mt-4">Ingresos / Egresos del Día</h4>
+    <table class="table table-bordered table-hover table-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Fecha</th>
+                <th class="text-end">Total Ingresos</th>
+                <th class="text-end">Total Egresos</th>
+                <th class="text-end">Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (ingresosEgresos != null && ingresosEgresos.Any())
+            {
+                foreach (var d in ingresosEgresos)
+                {
+                    <tr>
+                        <td>@d.Fecha.ToString("yyyy-MM-dd")</td>
+                        <td class="text-end">@d.TotalIngresos.ToString("C")</td>
+                        <td class="text-end">@d.TotalEgresos.ToString("C")</td>
+                        <td class="text-end">@d.Balance.ToString("C")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="4" class="text-center">No hay datos de ingresos/egresos para este día.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Detalle Finanzas del Día -->
+    <h4 class="mt-5">Detalle Finanzas del Día</h4>
+    <table class="table table-bordered table-hover table-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Hora</th>
+                <th>Tipo Movimiento</th>
+                <th>Responsable</th>
+                <th class="text-end">Monto</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (detalleFinanzas != null && detalleFinanzas.Any())
+            {
+                foreach (var f in detalleFinanzas)
+                {
+                    <tr>
+                        <td>@f.FechaHora.ToString("HH:mm:ss")</td>
+                        <td>@f.TipoMovimiento</td>
+                        <td>@f.Responsable</td>
+                        <td class="text-end">@f.Monto.ToString("C")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="4" class="text-center">No hay movimientos registrados para esta caja.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="mt-4">
+        <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-secondary">
+            ← Regresar a Lista
+        </a>
+    </div>
+</div>
