@@ -1,0 +1,83 @@
+﻿@model List<dynamic>
+@{
+    ViewBag.Title = "Listado de Vehículos";
+    string filtroMatricula = ViewBag.FiltroMatricula as string ?? "";
+    bool? filtroActivo    = ViewBag.FiltroActivo   as bool?;
+    var vehiculos = Model ?? new List<dynamic>();
+}
+
+<h2>Listado de Vehículos</h2>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <label class="form-label">Matrícula</label>
+        <input name="matricula" class="form-control" placeholder="Buscar matrícula" value="@filtroMatricula" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Activo</label>
+        <select name="activo" class="form-select">
+            <option value="">-- Todos --</option>
+            <!option value="true"  @(filtroActivo==true  ? "selected" : "")>Sí</!option>
+            <!option value="false" @(filtroActivo==false ? "selected" : "")>No</!option>
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-action="SeleccionarCliente" asp-controller="Vehiculo" class="btn btn-success">
+        Nuevo Vehículo
+    </a>
+</div>
+
+<table class="table table-bordered table-hover table-sm">
+    <thead class="table-dark">
+        <tr>
+            <th>Matrícula</th>
+            <th>Marca</th>
+            <th>Modelo</th>
+            <th>Año</th>
+            <th>Color</th>
+            <th class="text-center">Activo</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (vehiculos.Any())
+        {
+            foreach (var v in vehiculos)
+            {
+                <tr ondblclick="window.location='@Url.Action("Editar","Vehiculo", new { id = v.IdVehiculo })'" style="cursor:pointer;">
+                    <td>@v.vhMatricula</td>
+                    <td>@v.vhMarca</td>
+                    <td>@v.vhModelo</td>
+                    <td>@v.vhAño</td>
+                    <td>@v.vhColor</td>
+                    <td class="text-center">
+                        <form asp-action="CambiarEstado" asp-controller="Vehiculo" method="post" class="d-inline" onclick="event.stopPropagation();">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="idVehiculo" value="@v.IdVehiculo" />
+                            <button type="submit" class="btn btn-sm p-0">
+                                @if (v.vhActivo)
+                                {
+                                    <span class="text-success">&#10003;</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">&#10007;</span>
+                                }
+                            </button>
+                        </form>
+                    </td>                    
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="7" class="text-center">No se encontraron vehículos.</td>
+            </tr>
+        }
+    </tbody>
+</table>

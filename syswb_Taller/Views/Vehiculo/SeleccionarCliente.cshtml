@@ -1,0 +1,54 @@
+﻿@model List<dynamic>
+@{
+    ViewBag.Title = "Seleccionar Cliente";
+    string filtroNombre = ViewBag.FiltroNombre as string ?? "";
+    bool? filtroActivo   = ViewBag.FiltroActivo as bool?;
+}
+
+<h2>Seleccionar Cliente</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-warning">@TempData["Error"]</div>
+}
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <input name="nombre" class="form-control" placeholder="Buscar por nombre" value="@filtroNombre" />
+    </div>
+    <div class="col-md-2">
+        <select name="activo" class="form-select">
+            <option value="">-- Todos --</option>
+            <!option value="true"  @(filtroActivo==true  ? "selected" : "")>Activos</!option>
+            <!option value="false" @(filtroActivo==false ? "selected" : "")>Inactivos</!option>
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+<table class="table table-hover table-sm">
+    <thead class="table-light">
+        <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Teléfono</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach(var c in Model)
+    {
+        <tr>
+            <td>@c.Nombre</td>
+            <td>@c.Apellido</td>
+            <td>@c.Telefono</td>
+            <td>
+                <a asp-controller="Vehiculo" asp-action="Crear" asp-route-idCliente="@c.IdCliente"
+                   class="btn btn-sm btn-success">Seleccionar</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

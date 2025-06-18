@@ -1,0 +1,45 @@
+﻿@model dynamic
+
+@{
+    ViewBag.Title = "Editar Vehículo";
+    var vh = Model;
+}
+
+<h2>@ViewBag.Title</h2>
+
+<form asp-action="Editar" method="post" class="mb-4">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="idVehiculo" value="@vh.IdVehiculo" />
+    <input type="hidden" name="idCliente" value="@vh.IdCliente" />
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Matrícula</label>
+            <input name="vhMatricula" class="form-control" value="@vh.Matricula" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Marca</label>
+            <input name="vhMarca" class="form-control" value="@vh.Marca" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Modelo</label>
+            <input name="vhModelo" class="form-control" value="@vh.Modelo" required />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Año</label>
+            <input name="vhAño" type="number" class="form-control" value="@vh.Año" required />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Color</label>
+            <input name="vhColor" class="form-control" value="@vh.Color" required />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Estado</label>
+            <input name="vhEstado" class="form-control" value="@vh.Estado" required />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary">Guardar y Volver</button>
+            <a asp-action="Lista" asp-route-id="@vh.IdCliente" class="btn btn-secondary ms-2">Cancelar</a>
+        </div>
+    </div>
+</form>
