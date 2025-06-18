@@ -1,0 +1,110 @@
+﻿@model dynamic
+@{
+    ViewBag.Title = "Editar Cliente";
+    var c = ViewBag.Cliente;
+    var vehiculos = ViewBag.Vehiculos as List<dynamic> ?? new();
+    var ordenes = ViewBag.Ordenes as List<dynamic> ?? new();
+}
+
+<h2>Editar Cliente</h2>
+
+<form asp-action="Editar" method="post" class="mb-5">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="idCliente" value="@c.IdCliente" />
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Nombre</label>
+            <input name="pNombre" value="@c.Nombre" class="form-control" required />
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Apellido</label>
+            <input name="pApellido" value="@c.Apellido" class="form-control" required />
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Teléfono</label>
+            <input name="pTelefono" value="@c.Telefono" class="form-control" />
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Cédula</label>
+            <input name="pCedula" value="@c.Cedula" class="form-control" />
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Email</label>
+            <input name="clEmail" value="@c.Email" type="email" class="form-control" />
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    <a asp-action="Lista" class="btn btn-secondary ms-2">Volver</a>
+</form>
+
+<hr />
+
+<div class="row">
+    <div class="col-md-4">
+        <h3>Vehículos</h3>
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 40%;">Matrícula</th>
+                    <th style="width: 30%;">Color</th>
+                    <th style="width: 30%;">Marca</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (vehiculos.Any())
+                {
+                    foreach (var v in vehiculos)
+                    {
+                        <tr>
+                            <td>@v.Matricula</td>
+                            <td>@v.Color</td>
+                            <td>@v.Marca</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="3" class="text-center">Sin vehículos registrados</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col-md-8">
+        <h3>Órdenes</h3>
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 8%;">ID</th>
+                    <th style="width: 20%;">Fecha creación</th>
+                    <th style="width: 15%;">Estado</th>
+                    <th style="width: 15%;">Tipo</th>                   
+                    <th style="width: 27%;">Vehículo</th>
+                    <th class="text-end" style="width: 15%;">Costo Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (ordenes.Any())
+                {
+                    foreach (var o in ordenes)
+                    {
+                        <tr>
+                            <td>@o.IdOrden</td>
+                            <td>@o.FechaCreacion.ToString("g")</td>
+                            <td>@o.Estado</td>
+                            <td>@o.Tipo</td>                            
+                            <td>@o.VehiculoMatric - @o.VehiculoMarca</td>
+                            <td class="text-end">@o.CostoTotal.ToString("C")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="text-center">Sin órdenes registradas</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

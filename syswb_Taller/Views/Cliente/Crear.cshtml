@@ -1,0 +1,33 @@
+﻿@model dynamic
+@{
+    ViewBag.Title = "Crear Cliente";
+}
+<h2>Crear Cliente</h2>
+
+<form asp-action="Crear" method="post">
+    @Html.AntiForgeryToken()
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <label class="form-label">Nombre</label>
+            <input name="pNombre" class="form-control" required />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Apellido</label>
+            <input name="pApellido" class="form-control" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Teléfono</label>
+            <input name="pTelefono" class="form-control" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Cédula</label>
+            <input name="pCedula" class="form-control" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Email</label>
+            <input name="clEmail" type="email" class="form-control" required />
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">Crear Cliente</button>
+    <a asp-action="Lista" class="btn btn-secondary ms-2">Cancelar</a>
+</form>
