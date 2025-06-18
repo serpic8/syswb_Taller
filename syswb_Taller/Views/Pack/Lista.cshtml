@@ -1,0 +1,77 @@
+﻿@{
+    ViewBag.Title = "Listado de Packs";
+    var packs = ViewBag.Packs as List<dynamic> ?? new List<dynamic>();
+    string filtroNombre = ViewBag.FiltroNombre as string ?? "";
+    bool? filtroActivo = ViewBag.FiltroActivo as bool?;
+}
+
+<h2>Listado de Packs</h2>
+
+<form method="get" asp-action="Lista" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <label class="form-label">Nombre</label>
+        <input name="nombre" class="form-control" value="@filtroNombre" placeholder="Buscar por nombre" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Activo</label>
+        <select name="activo" class="form-select">
+            <option value="">-- Todos --</option>
+            <!option value="true" @(filtroActivo == true ? "selected" : "")>Sí</!option>
+            <!option value="false" @(filtroActivo == false ? "selected" : "")>No</!option>
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-action="Crear" class="btn btn-success">Crear Nuevo Pack</a>
+</div>
+
+<table class="table table-bordered table-hover table-sm">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th class="text-end">Precio</th>
+            <th class="text-center">Activo</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (packs.Any())
+        {
+            foreach (var p in packs)
+            {
+                <tr ondblclick="window.location='@Url.Action("Editar", "Pack", new { id = p.IdPack })'" style="cursor:pointer;">
+                    <td>@p.IdPack</td>
+                    <td>@p.Nombre</td>
+                    <td class="text-end">@p.Precio.ToString("C")</td>
+                    <td class="text-center">
+                        <form asp-action="CambiarEstado" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="idPack" value="@p.IdPack" />
+                            <button type="submit" class="btn btn-sm p-0">
+                                @if (p.Activo)
+                                {
+                                    <span class="text-success">&#10003;</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">&#10007;</span>
+                                }
+                            </button>
+                        </form>
+                    </td>
+
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center">No se encontraron packs.</td>
+            </tr>
+        }
+    </tbody>
+</table>

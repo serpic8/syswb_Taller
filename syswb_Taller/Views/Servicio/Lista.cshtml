@@ -1,0 +1,90 @@
+﻿@model List<syswb_Taller.Models.Servicio>
+@{
+    ViewBag.Title = "Lista de Servicios";
+    string filtroNombre = ViewBag.FiltroNombre as string;
+    bool? filtroActivo = ViewBag.FiltroActivo as bool?;
+}
+
+<h2>Lista de Servicios</h2>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label">Nombre</label>
+        <input name="nombre" class="form-control" value="@filtroNombre" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Activo</label>
+        <select name="activo" class="form-select">
+            <option value="">-- Todos --</option>
+            @if (filtroActivo == true)
+            {
+                <option value="true" selected>Sí</option>
+            }
+            else
+            {
+                <option value="true">Sí</option>
+            }
+            @if (filtroActivo == false)
+            {
+                <option value="false" selected>No</option>
+            }
+            else
+            {
+                <option value="false">No</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-action="Crear" class="btn btn-success">Crear Nuevo Servicio</a>
+</div>
+
+<table class="table table-bordered table-hover table-sm">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th class="text-end">Precio Unitario</th>
+            <th class="text-center">Activo</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Any())
+        {
+            foreach (var s in Model)
+            {
+                <tr ondblclick="window.location='@Url.Action("Editar", "Servicio", new { id = s.IdServicio })'" style="cursor:pointer;">
+                    <td>@s.IdServicio</td>
+                    <td>@s.SerNombre</td>
+                    <td class="text-end">@s.SerPrecioUnit.ToString("C")</td>
+                    <td class="text-center" ondblclick="event.stopPropagation();" onclick="event.stopPropagation();">
+                        <form asp-action="CambiarEstado" method="post" class="d-inline" onclick="event.stopPropagation();">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="idServicio" value="@s.IdServicio" />
+                            <button type="submit" class="btn btn-sm p-0" onclick="event.stopPropagation();">
+                                @if (s.SerActivo)
+                                {
+                                    <span class="text-success">&#10003;</span> <!-- ✓ -->
+                                }
+                                else
+                                {
+                                    <span class="text-danger">&#10007;</span> <!-- ✗ -->
+                                }
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center">No se encontraron servicios.</td>
+            </tr>
+        }
+    </tbody>
+</table>

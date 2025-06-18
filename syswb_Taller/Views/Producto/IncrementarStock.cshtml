@@ -2,7 +2,7 @@
 
 @{
     ViewBag.Title = "Incrementar Stock";
-    var proveedores = ViewBag.Proveedores as List<syswb_Taller.Models.Proveedor>;
+    var proveedores = ViewBag.Proveedores as List<dynamic> ?? new List<dynamic>();
     var ultimasCompras = ViewBag.UltimasCompras as List<dynamic> ?? new List<dynamic>();
 }
 
@@ -32,11 +32,14 @@
         <label for="IdProveedor" class="form-label">Proveedor (opcional)</label>
         <select id="IdProveedor" name="IdProveedor" class="form-select">
             <option value="">-- Sin proveedor --</option>
-            @foreach (var prov in proveedores ?? Enumerable.Empty<dynamic>())
+            @foreach (var prov in proveedores)
             {
-                <option value="@prov.IdProveedor">@prov.PNombre</option>
+                <option value="@prov.IdProveedor">
+                    @prov.PNombre - @prov.PrecioReferencia.ToString("C2")
+                </option>
             }
         </select>
+
     </div>
 
     <div class="mb-3">

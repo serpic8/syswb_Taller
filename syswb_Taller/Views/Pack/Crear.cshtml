@@ -1,0 +1,127 @@
+﻿@model dynamic
+@using System.Globalization
+@{
+    ViewBag.Title = "Crear Pack de Reparación";
+    var pack = ViewBag.Pack;  // será null en creación inicial
+    var productos = ViewBag.Productos as List<syswb_Taller.Models.ProductoRepuesto> ?? new();
+    var servicios = ViewBag.Servicios as List<syswb_Taller.Models.Servicio> ?? new();
+    var detalles = ViewBag.Detalles as List<dynamic> ?? new List<dynamic>();
+    double costo = ViewBag.CostoTotal != null ? (double)ViewBag.CostoTotal : 0.0;
+    var niCulture = new CultureInfo("es-NI");
+    bool esEdicion = pack != null && pack.IdPack != 0;
+}
+
+<h2>@ViewBag.Title</h2>
+
+<form asp-action="Crear" method="post" class="mb-4">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label class="form-label">Nombre del Pack</label>
+        <input name="pckNombre" class="form-control" required />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Descripción (opcional)</label>
+        <textarea name="pckDescripcion" class="form-control" rows="3"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success">Crear Pack</button>
+    <a asp-action="Lista" class="btn btn-secondary ms-2">Cancelar</a>
+</form>
+
+<hr />
+<h3>Detalles del Pack @(esEdicion ? ("(" + pack.PckNombre + ")") : "(primero cree el pack)")</h3>
+<p><strong>Costo Total: </strong>@costo.ToString("C")</p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h5>Agregar Producto</h5>
+        <form asp-action="AgregarProducto" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="idPack" value="@(esEdicion ? pack.IdPack : 0)" />
+            <div class="col-8">
+                <select name="idProducto" class="form-select" required @(esEdicion ? "" : "disabled")>
+                    <option selected disabled>Seleccione producto</option>
+                    @foreach (var prod in productos)
+                    {
+                        <option value="@prod.IdProducto">@prod.PrNombre</option>
+                    }
+                </select>
+            </div>
+            <div class="col-3">
+                <input name="pdCantidad" type="number" value="1" min="1" class="form-control" @(esEdicion ? "" : "disabled") />
+            </div>
+            <div class="col-1">
+                <button class="btn btn-primary" @(esEdicion ? "" : "disabled")>+</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-6">
+        <h5>Agregar Servicio</h5>
+        <form asp-action="AgregarServicio" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="idPack" value="@(esEdicion ? pack.IdPack : 0)" />
+            <div class="col-8">
+                <select name="idServicio" class="form-select" required @(esEdicion ? "" : "disabled")>
+                    <option selected disabled>Seleccione servicio</option>
+                    @foreach (var ser in servicios)
+                    {
+                        <option value="@ser.IdServicio">@ser.SerNombre</option>
+                    }
+                </select>
+            </div>
+            <div class="col-3">
+                <input name="psCantidad" type="number" value="1" min="1" class="form-control" @(esEdicion ? "" : "disabled") />
+            </div>
+            <div class="col-1">
+                <button class="btn btn-primary" @(esEdicion ? "" : "disabled")>+</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-sm table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th>Tipo</th>
+            <th>Nombre</th>
+            <th class="text-end">Cantidad</th>
+            <th class="text-end">Precio Unit.</th>
+            <th class="text-end">Subtotal</th>
+            <th class="text-center">Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var d in detalles)
+        {
+            <tr>
+                <td>@(d.Tipo == "P" ? "Producto" : "Servicio")</td>
+                <td>@d.Nombre</td>
+                <td class="text-end">
+                    <form asp-action="@(d.Tipo == "P" ? "ActualizarProducto" : "ActualizarServicio")"
+                          method="post" class="d-inline-flex" onclick="event.stopPropagation();">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="idDetalle" value="@d.Id" />
+                        <input name="@(d.Tipo == "P" ? "pdCantidad" : "psCantidad")"
+                               type="number" value="@d.Cantidad" min="1"
+                               class="form-control form-control-sm me-2 text-end"
+                               style="width:4rem;" />
+                        <button class="btn btn-sm btn-outline-primary">✎</button>
+                    </form>
+                </td>
+                <td class="text-end">@d.Precio.ToString("C", niCulture)</td>
+                <td class="text-end">@((d.Cantidad * d.Precio).ToString("C", niCulture))</td>
+                <td class="text-center">
+                    <form asp-action="@(d.Tipo == "P" ? "EliminarProducto" : "EliminarServicio")"
+                          method="post" onclick="event.stopPropagation();">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="idDetalle" value="@d.Id" />
+                        <button class="btn btn-sm btn-danger">✖</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
