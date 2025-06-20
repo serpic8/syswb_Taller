@@ -1,0 +1,60 @@
+﻿@{
+    ViewBag.Title = "Nuevo Cliente + Vehículo";
+}
+
+<h2>Nuevo Cliente + Vehículo</h2>
+<form asp-action="CrearClienteVehiculo" method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+    <legend>Datos del Cliente</legend>
+    <div class="col-md-4">
+        <label class="form-label">Nombre</label>
+        <input name="pNombre" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Apellido</label>
+        <input name="pApellido" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Teléfono</label>
+        <input name="pTelefono" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Cédula</label>
+        <input name="pCedula" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Email</label>
+        <input name="clEmail" type="email" class="form-control" required />
+    </div>
+
+    <legend class="mt-4">Datos del Vehículo</legend>
+    <div class="col-md-3">
+        <label class="form-label">Matrícula</label>
+        <input name="vhMatricula" class="form-control" required />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Marca</label>
+        <input name="vhMarca" class="form-control" required />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Modelo</label>
+        <input name="vhModelo" class="form-control" required />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Año</label>
+        <input name="vhAño" type="number" class="form-control" required />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Color</label>
+        <input name="vhColor" class="form-control" required />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Estado</label>
+        <input name="vhEstado" class="form-control" required />
+    </div>
+
+    <div class="col-12 mt-3">
+        <button type="submit" class="btn btn-primary">Crear Cliente y Vehículo</button>
+        <a asp-action="SeleccionarClientePresupuesto" class="btn btn-link">Ya soy cliente</a>
+    </div>
+</form>

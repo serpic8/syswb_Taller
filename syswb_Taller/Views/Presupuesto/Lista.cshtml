@@ -1,0 +1,45 @@
+﻿@model List<dynamic>
+@{
+    ViewBag.Title = "Listado de Presupuestos";
+    var list = Model;
+}
+
+<h2>Listado de Presupuestos</h2>
+<p>
+    <a asp-action="CrearClienteVehiculo" class="btn btn-success">
+        Crear Presupuesto
+    </a>
+</p>
+
+<table class="table table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Estado</th>
+            <th class="text-end">Costo</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var p in list)
+        {
+            <tr ondblclick="window.location='@Url.Action("EditarPresupuesto","Presupuesto", new { id = p.Id })'">
+                <td>@p.Id</td>
+                <td>@p.Fecha.ToString("g")</td>
+                <td>@p.Cliente</td>
+                <td>
+                    @if (p.Estado)
+                    {
+                        <span class="text-success">Aprobado</span>
+                    }
+                    else
+                    {
+                        <span class="text-warning">Pendiente</span>
+                    }
+                </td>
+                <td class="text-end">@p.Costo.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>
