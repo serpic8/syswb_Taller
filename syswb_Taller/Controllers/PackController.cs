@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -21,6 +22,7 @@ namespace syswb_Taller.Controllers
         #region CRUD Pack
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> Lista(string nombre = null, bool? activo = null)
         {
             var packs = new List<dynamic>();
@@ -53,6 +55,7 @@ namespace syswb_Taller.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Crear()
         {
             // Productos y servicios para dropdowns
@@ -76,6 +79,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Crear(string pckNombre, string pckDescripcion)
         {
             using var conn = _bdTallerContext.Database.GetDbConnection();
@@ -108,6 +112,7 @@ namespace syswb_Taller.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int id)
         {
             // Pack principal
@@ -172,6 +177,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int idPack, string pckNombre, string pckDescripcion)
         {
             using var conn = _bdTallerContext.Database.GetDbConnection();
@@ -188,6 +194,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> CambiarEstado(int idPack)
         {
             using var conn = _bdTallerContext.Database.GetDbConnection();
@@ -205,6 +212,7 @@ namespace syswb_Taller.Controllers
         #region CRUD Detalles
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Detalles(int idPack)
         {
             // Carga el pack
@@ -253,6 +261,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarProducto(int idPack, int idProducto, int pdCantidad = 1)
         {
             using var conn = _bdTallerContext.Database.GetDbConnection();
@@ -269,6 +278,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarServicio(int idPack, int idServicio, int psCantidad = 1)
         {
             using var conn = _bdTallerContext.Database.GetDbConnection();
@@ -285,6 +295,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarProducto(int idDetalle, int? pdCantidad)
         {
             var idPack = await _bdTallerContext.DetallePackProductos
@@ -305,6 +316,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarServicio(int idDetalle, int? psCantidad)
         {
             var idPack = await _bdTallerContext.DetallePackServicios
@@ -325,6 +337,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> EliminarProducto(int idDetalle)
         {
             var idPack = await _bdTallerContext.DetallePackProductos
@@ -344,6 +357,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> EliminarServicio(int idDetalle)
         {
             var idPack = await _bdTallerContext.DetallePackServicios

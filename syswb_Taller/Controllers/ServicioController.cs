@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using syswb_Taller.Models;
@@ -15,6 +16,7 @@ namespace syswb_Taller.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> Lista(string nombre = null, bool? activo = null)
         {
             var servicios = new List<Servicio>();
@@ -56,6 +58,7 @@ namespace syswb_Taller.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public IActionResult Crear()
         {
             return View();
@@ -66,6 +69,7 @@ namespace syswb_Taller.Controllers
         // -------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Crear(string serNombre, double serPrecioUnit)
         {
             var conn = _bdTallerContext.Database.GetDbConnection();
@@ -89,6 +93,7 @@ namespace syswb_Taller.Controllers
         // GET: Editar Servicio
         // -------------------------------------------
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int id)
         {
             dynamic servicio = null;
@@ -127,6 +132,7 @@ namespace syswb_Taller.Controllers
         // -------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int idServicio, string serNombre, double serPrecioUnit)
         {
             var conn = _bdTallerContext.Database.GetDbConnection();
@@ -152,6 +158,7 @@ namespace syswb_Taller.Controllers
         // -------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> CambiarEstado(int idServicio)
         {
             var conn = _bdTallerContext.Database.GetDbConnection();

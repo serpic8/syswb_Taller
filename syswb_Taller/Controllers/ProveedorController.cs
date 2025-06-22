@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -16,6 +17,7 @@ namespace syswb_Taller.Controllers
         }
 
         // GET: Lista de proveedores con filtros
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Lista(string nombre, bool? activo)
         {
             var nombreParam = new SqlParameter("@Nombre", (object?)nombre ?? DBNull.Value);
@@ -32,6 +34,7 @@ namespace syswb_Taller.Controllers
 
         // GET: Mostrar formulario de creación
         [HttpGet]
+        [Authorize(Roles = "Administrador")]
         public IActionResult Detalle()
         {
             // Vista en blanco para agregar
@@ -41,6 +44,7 @@ namespace syswb_Taller.Controllers
         // POST: Crear nuevo proveedor
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Detalle(string pNombre, string pTelefono)
         {
             try
@@ -66,6 +70,7 @@ namespace syswb_Taller.Controllers
         // GET: Mostrar formulario de edición
         // GET: Mostrar formulario de edición + productos asociados
         [HttpGet]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(int id)
         {
             // 1) Traer el proveedor (con EF directo, o SP si quieres)
@@ -113,6 +118,7 @@ namespace syswb_Taller.Controllers
         // POST: Guardar cambios de edición
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(int id, string pNombre, string pTelefono)
         {
             try
@@ -150,6 +156,7 @@ namespace syswb_Taller.Controllers
 
         // GET: SP trae productos asociados
         [HttpGet]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Productos(int idProveedor)
         {
             var param = new SqlParameter("@idProveedor", idProveedor);
@@ -162,6 +169,7 @@ namespace syswb_Taller.Controllers
         // POST: agregar relación
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> AgregarProducto(int idProveedor, int idProducto, double precioRef)
         {
             var pProv = new SqlParameter("@idProveedor", idProveedor);
@@ -186,6 +194,7 @@ namespace syswb_Taller.Controllers
         // POST: actualizar precio y/o estado
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> ActualizarProducto(int idProveedor, int idProducto, double? precioRef, bool? activo)
         {
             var pProv = new SqlParameter("@idProveedor", idProveedor);
@@ -211,6 +220,7 @@ namespace syswb_Taller.Controllers
         // POST: alternar activo
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> ToggleProducto(int idProveedor, int idProducto)
         {
             var pProv = new SqlParameter("@idProveedor", idProveedor);

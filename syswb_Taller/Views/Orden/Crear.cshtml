@@ -1,0 +1,269 @@
+﻿@model dynamic
+@using System.Globalization
+
+@{
+    int idOrden = Model?.IdOrden ?? 0;
+    bool esCreacion = idOrden == 0;
+    ViewBag.Title = esCreacion ? "Nueva Orden" : "Editar Orden";
+    DateTime fecha = esCreacion ? DateTime.Now : Model.OrFechaCreacion;
+    double costoTotal = esCreacion ? 0.0 : Model.OrCostoTotal;
+    var niCulture = new CultureInfo("es-NI");
+
+    var packs     = ViewBag.Packs     as List<syswb_Taller.Models.PackReparacion> ?? new();
+    var productos = ViewBag.Productos as List<syswb_Taller.Models.ProductoRepuesto> ?? new();
+    var servicios = ViewBag.Servicios as List<syswb_Taller.Models.Servicio>      ?? new();
+    var detalles  = ViewBag.Detalles  as List<dynamic>                         ?? new List<dynamic>();
+}
+
+<h2>@ViewBag.Title</h2>
+
+<form asp-action="@(esCreacion ? "Crear" : "Editar")"
+      asp-controller="Orden"
+      method="post"
+      class="mb-4">
+    @Html.AntiForgeryToken()
+
+    @* Hidden fields *@
+    @if (esCreacion)
+    {
+        <input type="hidden" name="clienteID"      value="@ViewBag.ClienteID" />
+        <input type="hidden" name="vehiculoID"     value="@ViewBag.VehiculoID" />
+        <input type="hidden" name="presupuestoID"  value="@(ViewBag.PresupuestoID ?? "")" />
+    }
+    else
+    {
+        <input type="hidden" name="idOrden" value="@idOrden" />
+    }
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Número de Orden</label>
+            <input class="form-control"
+                   value="@(esCreacion ? "(se genera al guardar)" : idOrden.ToString())"
+                   readonly />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Fecha Creación</label>
+            <input class="form-control"
+                   value="@fecha.ToString("dd/MM/yyyy")"
+                   readonly />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Costo Total</label>
+            <input class="form-control"
+                   value="@costoTotal.ToString("C", niCulture)"
+                   readonly />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Cliente</label>
+            <input class="form-control" value="@ViewBag.ClienteNombre" readonly />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Vehículo</label>
+            <input class="form-control" value="@ViewBag.Vehiculo" readonly />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Asignar Mecánico (opcional)</label>
+            <select name="idMecanicoTemp" class="form-select">
+                <option value="">-- Seleccione Mecánico --</option>
+                @foreach (var m in ViewBag.Mecanicos as IEnumerable<dynamic>)
+                {
+                    <option value="@m.IdEmpleado">@m.NombreCompleto</option>
+                }
+            </select>
+        </div>
+
+
+        <div class="col-md-4">
+            <label class="form-label">Estado</label>
+            <select name="orEstado" class="form-select" required>
+                @foreach(var st in (string[])ViewBag.Estados)
+                {
+                    <!option value="@st" @( !esCreacion && st==Model.OrEstado ? "selected": "" )>@st</!option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Tipo</label>
+            <select name="orTipo" class="form-select" required>
+                @foreach(var tp in (string[])ViewBag.Tipos)
+                {
+                    <!option value="@tp" @( !esCreacion && tp==Model.OrTipo ? "selected": "" )>@tp</!option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Fecha Entrega</label>
+            <input name="orFechaEntrega" type="date" class="form-control"
+                   value="@(esCreacion ? "" : ((DateTime)Model.OrFechaEntrega).ToString("yyyy-MM-dd"))"
+                   required />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Descripción de la falla</label>
+            <textarea name="orFalla" class="form-control" rows="3" required>@(esCreacion ? "" : Model.OrFalla)</textarea>
+        </div>
+
+        <div class="col-12">
+            <button type="submit"
+                    class="btn btn-@(esCreacion ? "success" : "primary")">
+                @(esCreacion ? "Crear Orden" : "Guardar Cambios")
+            </button>
+            <a asp-action="Lista"
+               asp-controller="Orden"
+               class="btn btn-secondary ms-2">
+                Cancelar
+            </a>
+        </div>
+    </div>
+
+    @* — Botones adicionales solo en modo edición — *@
+    @if (!esCreacion)
+    {
+        <div class="mb-4 d-flex gap-2">
+            <a asp-action="AgregarPagoOrden"
+               asp-controller="Orden"
+               asp-route-idOrden="@Model.IdOrden"
+               class="btn btn-warning">
+                <i class="bi-cash-stack"></i> Registrar Pago
+            </a>
+            <a asp-action="AgregarEntrega"
+               asp-controller="Orden"
+               asp-route-idOrden="@Model.IdOrden"
+               class="btn btn-info">
+                <i class="bi-truck"></i> Registrar Entrega
+            </a>
+        </div>
+    }
+</form>
+
+@if (!esCreacion)
+{
+    <hr />
+
+    @* — Sección de detalles (packs/productos/servicios) — *@
+    <div class="row mb-4">
+        <!-- Packs -->
+        <div class="col-md-4">
+            <h5>Agregar Pack</h5>
+            <form asp-action="AgregarPack" asp-controller="Orden" method="post" class="row g-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="idOrden" value="@idOrden" />
+                <div class="col-8">
+                    <select name="idPack" class="form-select" required>
+                        <option selected disabled>Seleccione pack</option>
+                        @foreach (var p in packs)
+                        {
+                            <option value="@p.IdPack">@p.PckNombre</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-2">
+                    <input name="opCantidad" type="number" value="1" min="1" class="form-control" />
+                </div>
+                <div class="col-2">
+                    <button class="btn btn-outline-primary">+</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Productos -->
+        <div class="col-md-4">
+            <h5>Agregar Producto</h5>
+            <form asp-action="AgregarProducto" asp-controller="Orden" method="post" class="row g-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="idOrden" value="@idOrden" />
+                <div class="col-8">
+                    <select name="idProducto" class="form-select" required>
+                        <option selected disabled>Seleccione producto</option>
+                        @foreach (var pr in productos)
+                        {
+                            <option value="@pr.IdProducto">@pr.PrNombre</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-2">
+                    <input name="opCantidad" type="number" value="1" min="1" class="form-control" />
+                </div>
+                <div class="col-2">
+                    <button class="btn btn-outline-primary">+</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Servicios -->
+        <div class="col-md-4">
+            <h5>Agregar Servicio</h5>
+            <form asp-action="AgregarServicio" asp-controller="Orden" method="post" class="row g-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="idOrden" value="@idOrden" />
+                <div class="col-8">
+                    <select name="idServicio" class="form-select" required>
+                        <option selected disabled>Seleccione servicio</option>
+                        @foreach (var s in servicios)
+                        {
+                            <option value="@s.IdServicio">@s.SerNombre</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-2">
+                    <input name="opCantidad" type="number" value="1" min="1" class="form-control" />
+                </div>
+                <div class="col-2">
+                    <button class="btn btn-outline-primary">+</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="table table-sm table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Tipo</th>
+                <th>Nombre</th>
+                <th class="text-end">Cantidad</th>
+                <th class="text-end">Precio Unit.</th>
+                <th class="text-end">Subtotal</th>
+                <th class="text-center">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in detalles)
+            {
+                <tr>
+                    <td>@d.Tipo</td>
+                    <td>@d.Nombre</td>
+                    <td class="text-end">
+                        <form asp-action="@(d.Tipo=="Pack" ? "ActualizarPack" 
+                                         : d.Tipo=="Producto" ? "ActualizarProducto" 
+                                         : "ActualizarServicio")"
+                              asp-controller="Orden"
+                              method="post"
+                              class="d-inline-flex">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="idDetalle" value="@d.IdDetalle" />
+                            <input name="opCantidad" type="number" value="@d.Cantidad" min="1"
+                                   class="form-control form-control-sm me-2 text-end" style="width:4rem;" />
+                            <button class="btn btn-sm btn-outline-primary">✎</button>
+                        </form>
+                    </td>
+                    <td class="text-end">@d.Precio.ToString("C", niCulture)</td>
+                    <td class="text-end">@( (d.Cantidad*d.Precio).ToString("C", niCulture) )</td>
+                    <td class="text-center">
+                        <form asp-action="@(d.Tipo=="Pack" ? "EliminarPack" 
+                                         : d.Tipo=="Producto" ? "EliminarProducto" 
+                                         : "EliminarServicio")"
+                              asp-controller="Orden"
+                              method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="idDetalle" value="@d.IdDetalle" />
+                            <button class="btn btn-sm btn-danger">✖</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

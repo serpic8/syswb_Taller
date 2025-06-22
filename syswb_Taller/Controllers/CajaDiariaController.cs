@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -17,6 +18,7 @@ namespace syswb_Taller.Controllers
 
         // POST: Abrir Caja
         [HttpPost]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AbrirCaja(int? anio, int? mes)
         {
@@ -42,6 +44,7 @@ namespace syswb_Taller.Controllers
 
         // POST: Cerrar Caja
         [HttpPost]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CerrarCaja(int? anio, int? mes)
         {
@@ -56,6 +59,7 @@ namespace syswb_Taller.Controllers
         }
 
         // GET: Resumen de Caja Diaria
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Lista(int? anio, int? mes)
         {
             int y = anio ?? DateTime.Today.Year;
@@ -98,8 +102,8 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-        // GET: Detalle de Caja Diaria para una fecha específica
-        // GET: Detalle de Caja Diaria para una caja específica
+
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Detalle(int idCaja)
         {
             var caja = await _bdTallerContext.CajaDiaria

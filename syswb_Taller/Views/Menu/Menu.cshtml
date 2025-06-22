@@ -1,0 +1,48 @@
+﻿@{
+    ViewBag.Title = "Menú Principal";
+    var usuario = User.Identity.IsAuthenticated ? User.Identity.Name : "Invitado";
+    var fechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+}
+
+<div class="container py-4">
+    <!-- Cabecera con logo, usuario y hora -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <img src="~/images/logo.png" alt="Logo" height="60" />
+        <div class="text-end">
+            <div><strong>Usuario:</strong> @usuario</div>
+            <div><strong>Fecha/Hora:</strong> @fechaHora</div>
+        </div>
+        <div>
+            <a class="btn btn-outline-warning me-2"
+               asp-action="AbrirCajaDiaria">Abrir Caja Diaria</a>
+            <form asp-controller="Menu" asp-action="Logout" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">Logout</button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Botones principales -->
+    <div class="row g-3 mb-4">
+        <div class="col"><a class="btn btn-primary w-100" asp-action="Orden">Orden</a></div>
+        <div class="col"><a class="btn btn-success w-100" asp-action="Presupuesto">Presupuesto</a></div>
+        <div class="col"><a class="btn btn-info w-100" asp-action="Packs">Packs</a></div>
+        <div class="col"><a class="btn btn-secondary w-100" asp-action="Productos">Productos</a></div>
+        <div class="col"><a class="btn btn-dark w-100" asp-action="Clientes">Clientes</a></div>
+        <div class="col"><a class="btn btn-warning w-100" asp-action="Vehiculos">Vehículos</a></div>
+        <div class="col"><a class="btn btn-danger w-100" asp-action="Servicios">Servicios</a></div>
+        <div class="col"><a class="btn btn-light w-100" asp-action="Administracion">Administración</a></div>
+    </div>
+
+    <!-- Botón Crear con opciones adicionales -->
+    <div class="dropdown text-center">
+        <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+            Crear
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" asp-action="CrearOrden">Nueva Orden</a></li>
+            <li><a class="dropdown-item" asp-action="CrearPresupuesto">Nuevo Presupuesto</a></li>
+        </ul>
+    </div>
+</div>

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -17,6 +18,7 @@ namespace syswb_Taller.Controllers
         #region CRUD_Presupuesto
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> Lista(DateTime? fechaDesde = null, DateTime? fechaHasta = null, int? clienteID = null, bool? estado = null)
         {
             var list = new List<dynamic>();
@@ -51,6 +53,7 @@ namespace syswb_Taller.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public IActionResult CrearClienteVehiculo()
         {
             return View();
@@ -58,6 +61,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> CrearClienteVehiculo(
             string pNombre,
             string pApellido,
@@ -114,6 +118,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarPresupuesto(int idPresupuesto, string preFalla)
         {
             // 1) ejecuta el UPDATE
@@ -130,6 +135,7 @@ namespace syswb_Taller.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> EditarPresupuesto(int id)
         {
             // Obtener presupuesto
@@ -222,6 +228,7 @@ namespace syswb_Taller.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> SeleccionarClientePresupuesto(string nombre = null, bool? activo = null)
         {
             var clientes = new List<dynamic>();
@@ -267,6 +274,7 @@ namespace syswb_Taller.Controllers
         // 4) CREAR PRESUPUESTO (paso final)
         // ——————————————————————————
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> CrearPresupuesto(int clienteID, int idVehiculo)
         {
             ViewBag.ClienteID = clienteID;
@@ -303,6 +311,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> CrearPresupuesto(int clienteID, int idVehiculo, string preFalla)
         {
             using var conn = _bd.Database.GetDbConnection();
@@ -340,6 +349,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarPack(int idPresupuesto, int idPack, int ppCantidad)
         {
             using var conn = _bd.Database.GetDbConnection();
@@ -356,6 +366,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarProducto(int idPresupuesto, int idProducto, int ppCantidad)
         {
             using var conn = _bd.Database.GetDbConnection();
@@ -372,6 +383,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarServicio(int idPresupuesto, int idServicio, int psCantidad)
         {
             using var conn = _bd.Database.GetDbConnection();
@@ -390,6 +402,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarPack(int idDetalle, int? ppCantidad)
         {
             using var conn = _bd.Database.GetDbConnection();
@@ -412,6 +425,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarProducto(int idDetalle, int? ppCantidad)
         {
             using var conn = _bd.Database.GetDbConnection();
@@ -433,6 +447,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarServicio(int idDetalle, int? psCantidad)
         {
             using var conn = _bd.Database.GetDbConnection();
@@ -456,6 +471,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> EliminarPack(int idDetalle)
         {
             // 1) Obtén el idPresupuesto antes de borrar
@@ -479,6 +495,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> EliminarProducto(int idDetalle)
         {
             int idPresupuesto = await _bd.PresupuestoDetalleProductos
@@ -499,6 +516,7 @@ namespace syswb_Taller.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> EliminarServicio(int idDetalle)
         {
             int idPresupuesto = await _bd.PresupuestoDetalleServicios

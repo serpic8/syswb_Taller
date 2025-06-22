@@ -1,0 +1,134 @@
+﻿@model syswb_Taller.Models.OrdenDetalleEntrega
+
+@{
+    ViewBag.Title = Model.IdEntrega == 0 ? "Registrar Entrega" : "Actualizar Entrega";
+    bool esCreacion = Model.IdEntrega == 0;
+
+    // Formato del código generado para la orden de entrega
+    string ordenEntregaGenerada = "OE-" + Model.IdOrden.ToString("D4") + "-" + DateTime.Now.Year;
+    var mecanicoPreasignado = ViewBag.MecanicoAsignado as int?;
+
+}
+
+
+<form asp-action="@(esCreacion ? "AgregarEntrega" : "ActualizarEntrega")"
+      method="post"
+      class="container mt-4">
+    @Html.AntiForgeryToken()
+    <h4>@ViewBag.Title</h4>
+
+    <input type="hidden" name="idOrden" value="@Model.IdOrden" />
+    @if (!esCreacion)
+    {
+        <input type="hidden" name="idEntrega" value="@Model.IdEntrega" />
+    }
+
+    <!-- Orden de entrega generada -->
+    <div class="mb-3">
+        <label class="form-label">Orden de entrega</label>
+        <div class="form-control-plaintext fw-bold">
+            @(esCreacion ? ordenEntregaGenerada : Model.OrdenEntrega)
+        </div>
+        <input type="hidden" name="orden_entrega" value="@(esCreacion ? ordenEntregaGenerada : Model.OrdenEntrega)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="recibido_por" class="form-label">Recibido por</label>
+        <input name="recibido_por" id="recibido_por" class="form-control"
+               value="@(esCreacion ? "" : Model.RecibidoPor)" required />
+    </div>
+
+    <div class="mb-3">
+        <label for="telefono_recibe" class="form-label">Teléfono quien recibe</label>
+        <input name="telefono_recibe" id="telefono_recibe" class="form-control"
+               value="@(esCreacion ? "" : Model.TelefonoRecibe)" required />
+    </div>
+
+    <div class="mb-3">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="es_propietario" id="es_propietario"
+                   @( !esCreacion && Model.EsPropietario ? "checked" : "" ) />
+            <label class="form-check-label" for="es_propietario">¿Es propietario?</label>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="entregado_por" class="form-label">Entregado por (empleado)</label>
+        <select name="entregado_por" id="entregado_por" class="form-select" required>
+            <option value="">Seleccione empleado</option>
+            @{
+                var empleados = ViewBag.Empleados as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+            }
+            @foreach (var e in empleados)
+            {
+                <!option value="@e.IdEmpleado" @( !esCreacion && e.IdEmpleado == Model.EntregadoPor ? "selected" : "" )>
+                    @e.NombreCompleto
+                </!option>
+            }
+        </select>
+    </div>
+
+ 
+
+    <div class="mb-3">
+        <label for="mecanico_responsable" class="form-label">Mecánico responsable</label>
+        <select name="mecanico_responsable" id="mecanico_responsable" class="form-select" required>
+            <option value="">Seleccione mecánico</option>
+            @foreach (var e in empleados)
+            {
+                bool seleccionado = (!esCreacion && e.IdEmpleado == Model.MecanicoResponsable) ||
+                                    (esCreacion && mecanicoPreasignado.HasValue && mecanicoPreasignado.Value == e.IdEmpleado);
+
+                <!option value="@e.IdEmpleado" @(seleccionado ? "selected" : "")>
+                    @e.NombreCompleto
+                </!option>
+            }
+        </select>
+    </div>
+
+
+    <div class="mb-3">
+        <label for="informe_tecnico" class="form-label">Informe técnico</label>
+        <textarea name="informe_tecnico" id="informe_tecnico" class="form-control" rows="4"
+                  required>@(esCreacion ? "" : Model.InformeTecnico)</textarea>
+    </div>
+
+    <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-success me-2" onclick="confirmarEntrega()">
+            @(esCreacion ? "Registrar Entrega" : "Guardar Cambios")
+        </button>
+        <a asp-action="Editar" asp-controller="Orden" asp-route-id="@Model.IdOrden" class="btn btn-secondary">
+            Cancelar
+        </a>
+    </div>
+
+    <!-- Modal de confirmación -->
+    <div class="modal fade" id="modalConfirmacion" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">¿Está seguro?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    @(esCreacion
+                        ? "¿Confirma registrar esta entrega?"
+                        : "¿Confirma guardar los cambios de entrega?")
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Sí</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        function confirmarEntrega() {
+            var m = new bootstrap.Modal(document.getElementById('modalConfirmacion'));
+            m.show();
+        }
+    </script>
+}

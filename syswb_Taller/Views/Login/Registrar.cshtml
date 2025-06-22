@@ -1,0 +1,48 @@
+﻿@model dynamic
+@{
+    ViewBag.Title = "Registro de Empleado";
+    var roles = ViewBag.Roles as List<syswb_Taller.Models.Roles> ?? new();
+}
+
+<h2>Registrar Nuevo Empleado</h2>
+
+<form asp-action="Registrar" method="post" class="w-50 mx-auto">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label class="form-label">Nombre</label>
+        <input name="pNombre" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Apellido</label>
+        <input name="pApellido" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Teléfono</label>
+        <input name="pTelefono" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Cédula</label>
+        <input name="pCedula" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Usuario (login)</label>
+        <input name="empUsuario" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <input name="contrasena_texto" type="password" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Rol</label>
+        <select name="idRol" class="form-select" required>
+            <option selected disabled>Seleccione rol</option>
+            @foreach (var r in roles)
+            {
+                <option value="@r.IdRol">@r.RTipo</option>
+            }
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-success">Registrarme</button>
+</form>

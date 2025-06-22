@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -16,6 +17,7 @@ namespace syswb_Taller.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> Lista(int idCliente)
         {
             ViewBag.IdCliente = idCliente;
@@ -56,6 +58,7 @@ namespace syswb_Taller.Controllers
 
         // GET: /Vehiculo/SeleccionarCliente
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> SeleccionarCliente(string nombre = null, bool? activo = null)
         {
             ViewBag.FiltroNombre = nombre;
@@ -88,6 +91,7 @@ namespace syswb_Taller.Controllers
 
         // Modificamos tu Crear GET para forzar selección:
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Crear(int? idCliente)
         {
             if (idCliente == null)
@@ -109,6 +113,7 @@ namespace syswb_Taller.Controllers
         // POST: /Vehiculo/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Crear(
             string vhMatricula,
             string vhMarca,
@@ -137,6 +142,7 @@ namespace syswb_Taller.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int id, int idCliente)
         {
             // 'id' ahora es el idVehiculo
@@ -178,6 +184,7 @@ namespace syswb_Taller.Controllers
         // POST: /Vehiculo/Editar
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(
              int idVehiculo,
              string vhMatricula,
@@ -215,6 +222,7 @@ namespace syswb_Taller.Controllers
         // POST: /Vehiculo/CambiarEstado
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> CambiarEstado(int idVehiculo, int idCliente)
         {
             using var conn = _bdTallerContext.Database.GetDbConnection();

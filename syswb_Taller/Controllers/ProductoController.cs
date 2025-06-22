@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
@@ -37,6 +38,7 @@ namespace syswb_Taller.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> Lista(string? nombre, string? marca, string? categoria, bool? activo)
         {
             var productos = new List<ProductoRepuesto>();
@@ -86,7 +88,7 @@ namespace syswb_Taller.Controllers
             return View(productos);
         }
 
-
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public IActionResult Crear()
         {
             return View();
@@ -95,6 +97,7 @@ namespace syswb_Taller.Controllers
         // POST: Crear Producto
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Crear(string prNombre, string prMarca, string prCategoria, double? prCosto, double? prPrecioVenta)
         {
             try
@@ -119,6 +122,7 @@ namespace syswb_Taller.Controllers
         }
 
         // GET: Editar Producto
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int id)
         {
             // Reutilizar Lista para obtener todos
@@ -170,6 +174,7 @@ namespace syswb_Taller.Controllers
         // POST: Alternar estado activo/inactivo
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> Toggle(int id)
         {
             await _bdTallerContext.Database.ExecuteSqlRawAsync(
@@ -184,6 +189,7 @@ namespace syswb_Taller.Controllers
         #region Stock y Eliminar Stock
         // Dentro de ProductoController.cs
         [HttpGet]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> IncrementarStock(int id)
         {
             // 1) Recuperar el producto
@@ -225,18 +231,18 @@ namespace syswb_Taller.Controllers
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = @"
-            SELECT TOP 5 
-              cp.idCompra, 
-              cp.compFecha, 
-              cpro.cproCantidad,
-              cpro.idProveedor, 
-              pr.pNombre         AS ProveedorNombre,
-              cp.cprActivo       AS CprActivo
-            FROM Compra_Proveedores cp
-            JOIN Compra_Producto   cpro ON cpro.idCompra = cp.idCompra
-            LEFT JOIN Proveedor     pr   ON pr.idProveedor = cpro.idProveedor
-            WHERE cpro.idProducto = @idProducto
-            ORDER BY cp.compFecha DESC";
+                SELECT TOP 5 
+                cp.idCompra, 
+                cp.compFecha, 
+                cpro.cproCantidad,
+                cpro.idProveedor, 
+                pr.pNombre         AS ProveedorNombre,
+                cp.cprActivo       AS CprActivo
+                FROM Compra_Proveedores cp
+                JOIN Compra_Producto   cpro ON cpro.idCompra = cp.idCompra
+                LEFT JOIN Proveedor     pr   ON pr.idProveedor = cpro.idProveedor
+                WHERE cpro.idProducto = @idProducto
+                ORDER BY cp.compFecha DESC";
                 cmd.Parameters.Clear();
                 cmd.Parameters.Add(new SqlParameter("@idProducto", id));
 
@@ -268,6 +274,7 @@ namespace syswb_Taller.Controllers
         // POST: Ejecutar SP Inc_StockProducto
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> IncrementarStock(int id, int? IdProveedor, int cantidad)
         {
             var pId = new SqlParameter("@idProducto", id);
@@ -286,6 +293,7 @@ namespace syswb_Taller.Controllers
 
         //Eliminar
         [HttpGet]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> Listar()
         {
             // Suponiendo que tienes un DbSet<Compra_Proveedores> en tu context
@@ -300,6 +308,7 @@ namespace syswb_Taller.Controllers
         // Muestra confirmación antes de borrar
         // GET: Producto/Eliminar/5
         [HttpGet]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Eliminar(int id)
         {
             var compra = await _bdTallerContext.CompraProveedores
@@ -312,6 +321,7 @@ namespace syswb_Taller.Controllers
         // POST: Producto/Eliminar/5
         [HttpPost, ActionName("Eliminar")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> EliminarConfirmado(int id)
         {
             try
@@ -333,6 +343,7 @@ namespace syswb_Taller.Controllers
         
         
         [HttpGet]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> ProveedoresProducto(int idProducto)
         {
             var proveedores = await _bdTallerContext.ProveedorProductos
@@ -346,6 +357,7 @@ namespace syswb_Taller.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> PorProducto(int idProducto)
         {
             var proveedores = new List<Proveedor>();
@@ -382,6 +394,7 @@ namespace syswb_Taller.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> HistorialProducto(int idProducto)
         {
             // Abre la conexión ADO.NET

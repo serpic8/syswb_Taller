@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -15,6 +16,7 @@ namespace syswb_Taller.Controllers
             _bdTallerContext = bdTallerContext;
         }
 
+        [Authorize(Roles ="Administrador")]
         public async Task<IActionResult> Resumen(int? anio, int? mes)
         {
             int y = anio ?? DateTime.Today.Year;
@@ -86,7 +88,7 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-
+        [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> ListaMovimientos(
             int? anio,
             int? mes,

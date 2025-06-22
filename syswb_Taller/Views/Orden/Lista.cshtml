@@ -1,0 +1,71 @@
+﻿@model List<dynamic>
+@{
+    ViewBag.Title = "Listado de Órdenes";
+    var list = Model;
+}
+
+<h2>Listado de Órdenes</h2>
+<p>
+    <a asp-action="SeleccionarClienteOrden" asp-controller="Orden" class="btn btn-success">
+        Nueva Orden
+    </a>
+</p>
+
+<table class="table table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Creación</th>
+            <th>Cliente</th>
+            <th>Vehículo</th>
+            <th>Entrega</th>
+            <th class="text-end">Costo</th>
+            <th>Pagada</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var o in list)
+        {
+            <tr ondblclick="window.location='@Url.Action("Editar","Orden", new { id = o.Id })'">
+                <td>@o.Id</td>
+                <td>@o.Creacion.ToString("g")</td>
+                <td>@o.Cliente</td>
+                <td>@o.Vehiculo</td>
+                <td>@o.Entrega.ToString("d")</td>
+                <td class="text-end">@o.Costo.ToString("C")</td>
+                <td class="text-center">
+                    @if (o.Pagada)
+                    {
+                        <span class="badge bg-success">Sí</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark">No</span>
+                    }
+                </td>
+                <td>
+                    @switch (o.Estado)
+                    {
+                        case "Pendiente":
+                            <span class="text-warning">@o.Estado</span>
+                            ;
+                            break;
+                        case "En Proceso":
+                            <span class="text-primary">@o.Estado</span>
+                            ;
+                            break;
+                        case "Entregado":
+                            <span class="text-success">@o.Estado</span>
+                            ;
+                            break;
+                        default:
+                            @o.Estado
+                            ;
+                            break;
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
