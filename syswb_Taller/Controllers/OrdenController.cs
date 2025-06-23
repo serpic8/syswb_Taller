@@ -669,5 +669,9 @@ namespace syswb_Taller.Controllers
         }
 
         #endregion
+
+        [HttpGet]
+        [Authorize(Roles ="Mecanico")]
+        public IActionResult AbrirDetalleEntrega() => RedirectToAction("AgregarEntrega", "Orden");
     }
 }

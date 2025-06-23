@@ -9,22 +9,97 @@
     <script>alert("@TempData["SuccessMessage"]");</script>
 }
 
-<div class="container mt-4">
-    <h2>Agregar Nuevo Proveedor</h2>
+@section Header { }
+@section Footer { }
 
-    <form asp-action="Detalle" method="post">
-        @Html.AntiForgeryToken()
-        <div class="mb-3">
-            <label for="pNombre" class="form-label">Nombre</label>
-            <input type="text" class="form-control" id="pNombre" name="pNombre"
-                   placeholder="Ej: Distribuidora XYZ" required />
+@section Styles {
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/intl-tel-input@17.0.19/build/css/intlTelInput.min.css" />
+}
+
+<div class="container mt-5">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0"><i class="bi bi-person-plus me-2"></i>Agregar Nuevo Proveedor</h2>
         </div>
-        <div class="mb-3">
-            <label for="pTelefono" class="form-label">Teléfono</label>
-            <input type="text" class="form-control" id="pTelefono" name="pTelefono"
-                   placeholder="Ej: 1234-5678" required />
+        <div class="card-body">
+            <form asp-action="Detalle" method="post" id="proveedorForm" novalidate>
+                @Html.AntiForgeryToken()
+
+                <div class="mb-4">
+                    <label for="pNombre" class="form-label fw-semibold">
+                        <i class="bi bi-person-fill me-1"></i>Nombre
+                    </label>
+                    <input type="text"
+                           class="form-control form-control-lg"
+                           id="pNombre"
+                           name="pNombre"
+                           placeholder="Ej: Distribuidora X"
+                           required
+                           autofocus />
+                </div>
+
+                <div class="mb-4">
+                    <label for="pTelefono" class="form-label fw-semibold">
+                        <i class="bi bi-telephone-fill me-1"></i>Teléfono
+                    </label>
+                    <input type="tel"
+                           id="pTelefono"
+                           class="form-control form-control-lg"
+                           placeholder="Ingrese el número"
+                           required />
+                    <input type="hidden" name="pTelefono" id="telefonoFormateado" />
+
+                    <div class="form-text text-danger mt-2 d-none" id="telefonoError" role="alert" aria-live="assertive">
+                        Número de teléfono inválido.
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success btn-lg flex-grow-1">
+                        <i class="bi bi-save2 me-2"></i>Guardar
+                    </button>
+                    <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary btn-lg flex-grow-1 text-center">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </a>
+                </div>
+            </form>
         </div>
-        <button type="submit" class="btn btn-success">Guardar</button>
-        <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-secondary">Cancelar</a>
-    </form>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const input = document.querySelector("#pTelefono");
+            const hiddenInput = document.querySelector("#telefonoFormateado");
+            const errorMsg = document.querySelector("#telefonoError");
+
+            const iti = window.intlTelInput(input, {
+                initialCountry: "ni",
+                preferredCountries: ["ni", "sv", "cr", "mx", "us"],
+                separateDialCode: true,
+                utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@17.0.19/build/js/utils.js"
+            });
+
+            function validatePhone() {
+                if (input.value.trim() && !iti.isValidNumber()) {
+                    errorMsg.classList.remove("d-none");
+                    return false;
+                }
+                errorMsg.classList.add("d-none");
+                return true;
+            }
+
+            document.getElementById("proveedorForm").addEventListener("submit", function (e) {
+                if (!validatePhone()) {
+                    e.preventDefault();
+                    return;
+                }
+                hiddenInput.value = iti.getNumber();
+            });
+
+            input.addEventListener("blur", validatePhone);
+        });
+    </script>
+}

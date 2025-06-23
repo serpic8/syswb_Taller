@@ -28,6 +28,8 @@ namespace syswb_Taller.Controllers
 
         public IActionResult CrearOrden() => RedirectToAction("CrearClienteVehiculo", "Orden");
         public IActionResult CrearPresupuesto() => RedirectToAction("CrearClienteVehiculo", "Presupuesto");
+        [Authorize(Roles = "Cajero")]
+        public IActionResult CajaDiaria() => RedirectToAction("Lista", "CajaDiaria");
 
         [HttpPost]
         [ValidateAntiForgeryToken]

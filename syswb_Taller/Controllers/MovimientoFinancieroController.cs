@@ -90,12 +90,12 @@ namespace syswb_Taller.Controllers
 
         [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> ListaMovimientos(
-            int? anio,
-            int? mes,
-            int? dia,
-            string tipoMovimiento,
-            int pageNumber = 1,
-            int pageSize = 50)
+         int? anio,
+         int? mes,
+         int? dia,
+         string tipoMovimiento,
+         int pageNumber = 1,
+         int pageSize = 20) // ← Mostrará 20 por página
         {
             // 1) Abrir conexión manualmente
             var conn = _bdTallerContext.Database.GetDbConnection();
@@ -105,7 +105,7 @@ namespace syswb_Taller.Controllers
             cmd.CommandText = "dbo.Get_MovimientosFinancieros";
             cmd.CommandType = CommandType.StoredProcedure;
 
-            // 2) Parametros del SP
+            // 2) Parámetros del SP
             cmd.Parameters.Add(new SqlParameter("@Anio", anio ?? (object)DBNull.Value));
             cmd.Parameters.Add(new SqlParameter("@Mes", mes ?? (object)DBNull.Value));
             cmd.Parameters.Add(new SqlParameter("@Dia", dia ?? (object)DBNull.Value));
@@ -116,6 +116,8 @@ namespace syswb_Taller.Controllers
             var movimientos = new List<dynamic>();
 
             using var reader = await cmd.ExecuteReaderAsync();
+
+            // Primer result set: movimientos paginados
             while (await reader.ReadAsync())
             {
                 movimientos.Add(new
@@ -131,6 +133,16 @@ namespace syswb_Taller.Controllers
                 });
             }
 
+            // Segundo result set: total de registros
+            int totalRegistros = 0;
+            int totalPages = 1;
+
+            if (await reader.NextResultAsync() && await reader.ReadAsync())
+            {
+                totalRegistros = reader.GetInt32(0);
+                totalPages = (int)Math.Ceiling((double)totalRegistros / pageSize);
+            }
+
             // 3) Pasar datos a la Vista
             ViewBag.Movimientos = movimientos;
             ViewBag.Anio = anio;
@@ -139,9 +151,11 @@ namespace syswb_Taller.Controllers
             ViewBag.TipoMovimiento = tipoMovimiento;
             ViewBag.PageNumber = pageNumber;
             ViewBag.PageSize = pageSize;
+            ViewBag.TotalPages = totalPages;
 
             return View();
         }
+
 
 
     }

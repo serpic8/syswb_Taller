@@ -1,42 +1,142 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model List<syswb_Taller.Models.Empleado>
+@using System.Globalization
+@removeTagHelper "Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers"
 @{
+    ViewData["Title"] = "Empleados";
+    string nombre = ViewBag.NombreFiltro as string ?? "";
+    bool? activo = ViewBag.ActivoFiltro as bool?;
+    var empleados = Model;
 }
-@model List<syswb_Taller.Models.Empleado>;
-<div class="row">
-    <div class="col-sm-8 offset-sm-2">
-        <h2>lista empleados</h2>
 
-        <table class="col-sm-8 offset-sm-2">
-            <thead>
-                <tr>
-                    <th>IdEmpleado</th>
-                    <th>Usuario</th>
-                    @* <th>Rol</th> *@
-                    <th>Activo</th>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
-                </tr>
+@section Header { }
+@section Footer { }
 
-            </thead>
-             <tbody>
-                 @foreach(var item in Model) @*Aca podria o crear una vista o un metodo get que llame a lo que quiero*@
-                {
-                   <tr>
-                       <td>@item.IdEmpleado</td>
-                       <td>@item.EmpUsuario</td>
-                       @* <td></td> *@
-                       <td>@(item.EmpActivo ? "SI" : "NO")</td>
+<style>
+    .filter-bar {
+        background: #fff;
+        padding: 1rem;
+        border-radius: .5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
 
+        .filter-bar .btn-group a.active {
+            background-color: #0097cc;
+            color: #fff;
+            border-color: #0097cc;
+        }
 
-                   </tr>   
-                }
+    .table-card {
+        border-radius: .5rem;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
 
-             </tbody> 
+        .table-card .card-header {
+            background: #0097cc;
+            color: #fff;
+            font-weight: 600;
+        }
 
-        </table>
+        .table-card tbody tr:hover {
+            background: rgba(0,151,204,0.1);
+            cursor: pointer;
+        }
+</style>
 
+<h2 class="mb-4"><i class="bi bi-people-fill me-2"></i>Empleados</h2>
+
+<div class="filter-bar row align-items-center">
+    <div class="col-md-6">
+        <div class="btn-group" role="group">
+            <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2 me-1"></i> Resumen
+            </a>
+            <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary active">
+                <i class="bi bi-people-fill me-1"></i> Empleados
+            </a>
+            <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary">
+                <i class="bi bi-truck-flatbed me-1"></i> Proveedores
+            </a>
+            <a href="@Url.Action("ListaMovimientos", "MovimientoFinanciero")" class="btn btn-outline-secondary">
+                <i class="bi bi-cash-stack me-1"></i> Finanzas
+            </a>
+            <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-outline-secondary">
+                <i class="bi bi-box-seam me-1"></i> Caja Diaria
+            </a>
+        </div>
     </div>
+    <form method="get" class="col-md-6 d-flex justify-content-end align-items-end" id="filtroForm">
+        <div class="me-3">
+            <label class="form-label mb-1"><i class="bi bi-search me-1"></i>Nombre</label>
+            <input type="text" class="form-control form-control-sm" name="nombre" placeholder="Buscar..." value="@nombre" />
+        </div>
+        <div class="me-3">
+            <label class="form-label mb-1"><i class="bi bi-toggle2-on me-1"></i>Estado</label>
+            <select class="form-select form-select-sm" name="activo">
+                <option value="">-- Todos --</option>
+                <option value="true" @(activo == true ? "selected" : "")>Activo</option>
+                <option value="false" @(activo == false ? "selected" : "")>Inactivo</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary align-self-end">
+            <i class="bi bi-funnel-fill me-1"></i> Filtrar
+        </button>
+    </form>
+</div>
 
-
+<div class="table-card">
+    <div class="card-header">
+        <i class="bi bi-people-fill me-2"></i> Lista de Empleados
+        <a href="@Url.Action("Nuevo", "Empleado")" class="btn btn-sm btn-success float-end">
+            <i class="bi bi-plus-circle-fill me-1"></i> Nuevo
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th><i class="bi bi-person-badge me-1"></i>Nombre</th>
+                    <th><i class="bi bi-person me-1"></i>Apellido</th>
+                    <th><i class="bi bi-telephone me-1"></i>Teléfono</th>
+                    <th><i class="bi bi-briefcase me-1"></i>Rol</th>
+                    <th><i class="bi bi-check-circle me-1"></i>Activo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (empleados.Any())
+                {
+                    
+                    @foreach (var e in Model)
+                    {
+                        <tr>
+                            <td>@e.IdPersonaNavigation.PNombre</td>
+                            <td>@e.IdPersonaNavigation.PApellido</td>
+                            <td>@e.IdPersonaNavigation.PTelefono</td>
+                            <td>@e.IdRolNavigation.RTipo</td>
+                            <td class="text-center align-middle" onclick="event.stopPropagation();">
+                                <form asp-action="ToggleEstado" method="post" style="display:inline" onsubmit="event.stopPropagation();">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="idEmpleado" value="@e.IdEmpleado" />
+                                    <button type="submit" class="toggle-btn btn btn-sm d-flex justify-content-center align-items-center @(e.EmpActivo ? "text-success" : "text-danger")" title="Alternar estado" style="width: 32px; height: 32px;">
+                                        <i class="bi @(e.EmpActivo ? "bi-check-lg" : "bi-x-lg")"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <i class="bi bi-exclamation-circle me-2"></i>No hay empleados.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>

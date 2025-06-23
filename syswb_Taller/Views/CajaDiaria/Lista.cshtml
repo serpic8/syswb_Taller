@@ -1,6 +1,6 @@
-﻿@{
+﻿@using System.Globalization
+@{
     ViewBag.Title = "Resumen de Caja Diaria";
-
     var resumen = ViewBag.Resumen as List<dynamic>;
     int anio = ViewBag.SelectedYear;
     int mes = ViewBag.SelectedMonth;
@@ -10,6 +10,44 @@
     string mesStr = mes.ToString();
 }
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+@section Header { }
+@section Footer { }
+
+<style>
+    .filter-bar {
+        background: #fff;
+        padding: 1rem;
+        border-radius: .5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    .filter-bar .btn-group a.active,
+    .filter-bar .btn-group a.btn-primary {
+        background-color: #0097cc;
+        color: #fff;
+        border-color: #0097cc;
+    }
+    .table-card {
+        border-radius: .5rem;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+    .table-card .card-header {
+        background: #0097cc;
+        color: #fff;
+        font-weight: 600;
+    }
+    .table-card tbody tr:hover {
+        background: rgba(0,151,204,0.1);
+        cursor: pointer;
+    }
+    .btn-caja {
+        padding: .5rem 1.5rem;
+        font-weight: 500;
+    }
+</style>
+
 @if (TempData["SuccessMessage"] != null)
 {
     <script>
@@ -18,94 +56,98 @@
 }
 
 <div class="container mt-4">
-    <h2>Resumen de Caja Diaria</h2>
+    <h2 class="mb-4"><i class="bi bi-cash me-2"></i>Resumen de Caja Diaria</h2>
 
-    <!-- Botón Horizontal: Opciones Administración -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="btn-group" role="group" aria-label="Opciones Administración">
-                <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-secondary">Resumen</a>
-                <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary">Trabajadores</a>
-                <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary">Proveedor</a>
-                <a href="@Url.Action("ListaMovimientos", "MovimientoFinanciero")" class="btn btn-outline-secondary">Finanzas</a>
-                <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-outline-primary">Caja Diaria</a>
+    <div class="filter-bar row align-items-center">
+        <!-- Navegación Principal -->
+        <div class="col-md-6">
+            <div class="btn-group" role="group">
+                <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-secondary">
+                    <i class="bi bi-speedometer2 me-1"></i> Resumen
+                </a>
+                <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary">
+                    <i class="bi bi-people-fill me-1"></i> Trabajadores
+                </a>
+                <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary">
+                    <i class="bi bi-truck-flatbed me-1"></i> Proveedores
+                </a>
+                <a href="@Url.Action("ListaMovimientos", "MovimientoFinanciero")" class="btn btn-outline-secondary">
+                    <i class="bi bi-cash-stack me-1"></i> Finanzas
+                </a>
+                <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-primary">
+                    <i class="bi bi-box-seam me-1"></i> Caja Diaria
+                </a>
             </div>
         </div>
-    </div>
 
-    <!-- Botón Abrir/Cerrar Caja -->
-    <div class="mb-4">
-        @if (!cajaAbierta)
-        {
-            <form asp-action="AbrirCaja" asp-controller="CajaDiaria" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="anio" value="@anio" />
-                <input type="hidden" name="mes" value="@mes" />
-                <button type="submit" class="btn btn-success">
-                    Abrir Caja
-                </button>
-            </form>
-        }
-        else
-        {
-            <form asp-action="CerrarCaja" asp-controller="CajaDiaria" method="post" class="d-inline"
-                  onsubmit="return confirm('¿Está seguro de que desea cerrar la caja? Esta acción no se puede deshacer.');">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="anio" value="@anio" />
-                <input type="hidden" name="mes" value="@mes" />
-                <button type="submit" class="btn btn-danger">
-                    Cerrar Caja
-                </button>
-            </form>
-        }
-    </div>
+        <!-- Acciones de Caja (Abrir/Cerrar) -->
+        <div class="col-md-6 d-flex justify-content-end align-items-center">
+            @if (!cajaAbierta)
+            {
+                <form asp-action="AbrirCaja" asp-controller="CajaDiaria" method="post" class="d-inline me-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="anio" value="@anio" />
+                    <input type="hidden" name="mes" value="@mes" />
+                    <button type="submit" class="btn btn-success btn-caja">
+                        <i class="bi bi-box-arrow-in-down me-1"></i>Abrir Caja
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form asp-action="CerrarCaja" asp-controller="CajaDiaria" method="post" class="d-inline me-3"
+                      onsubmit="return confirm('¿Está seguro de que desea cerrar la caja? Esta acción no se puede deshacer.');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="anio" value="@anio" />
+                    <input type="hidden" name="mes" value="@mes" />
+                    <button type="submit" class="btn btn-danger btn-caja">
+                        <i class="bi bi-box-arrow-up me-1"></i>Cerrar Caja
+                    </button>
+                </form>
+            }
 
-    <!-- Filtros: Año y Mes -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <form class="row g-3" method="get">
-                <div class="col-md-4">
-                    <label for="anio" class="form-label">Año</label>
+            <!-- Filtros: Año y Mes -->
+            <form method="get" class="d-flex align-items-end" id="filtroForm">
+                <div class="me-3">
+                    <label for="anio" class="form-label mb-1">
+                        <i class="bi bi-calendar3 me-1"></i>Año
+                    </label>
                     <input type="number"
-                           class="form-control"
-                           name="anio"
-                           id="anio"
+                           class="form-control form-control-sm"
+                           name="anio" id="anio"
                            value="@anioStr"
                            min="2000" max="@DateTime.Now.Year"
-                           placeholder="Ej: 2025">
+                           placeholder="Ej: 2025" />
                 </div>
-                <div class="col-md-4">
-                    <label for="mes" class="form-label">Mes</label>
-                    <select class="form-select" name="mes" id="mes">
+                <div class="me-3">
+                    <label for="mes" class="form-label mb-1">
+                        <i class="bi bi-calendar2-month me-1"></i>Mes
+                    </label>
+                    <select class="form-select form-select-sm"
+                            name="mes" id="mes">
+                        <option value="">-- Todos --</option>
                         @for (int i = 1; i <= 12; i++)
                         {
-                            if (mes == i)
-                            {
-                                <option value="@i" selected>
-                                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
-                                </option>
-                            }
-                            else
-                            {
-                                <option value="@i">
-                                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
-                                </option>
-                            }
+                            var mesNombre = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i);
+                            <!option value="@i" @(mes == i ? "selected" : "")>@mesNombre</!option>
                         }
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-                </div>
+                <button type="submit" class="btn btn-sm btn-primary align-self-end">
+                    <i class="bi bi-search me-1"></i>Filtrar
+                </button>
             </form>
         </div>
     </div>
 
-    <!-- Contenido: Tabla Resumen -->
-    <div class="row">
-        <div class="col-12">
-            <table class="table table-bordered table-hover table-sm">
-                <thead class="table-dark">
+    <!-- Tabla de Resumen -->
+    <div class="table-card">
+        <div class="card-header">
+            <i class="bi bi-calendar2-week me-2"></i>Detalle de Caja por Día
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
                     <tr>
                         <th>Fecha</th>
                         <th class="text-end">Ingreso</th>
@@ -118,7 +160,7 @@
                     {
                         foreach (var r in resumen)
                         {
-                            <tr onclick="location.href='@Url.Action("Detalle", "CajaDiaria", new { fecha = r.Fecha.ToString("yyyy-MM-dd") })'" style="cursor:pointer;">
+                            <tr onclick="location.href='@Url.Action("Detalle", "CajaDiaria", new { fecha = r.Fecha.ToString("yyyy-MM-dd") })'">
                                 <td>@r.Fecha.ToString("yyyy-MM-dd")</td>
                                 <td class="text-end">@r.Ingreso.ToString("C")</td>
                                 <td class="text-end">@r.Egreso.ToString("C")</td>
@@ -129,7 +171,9 @@
                     else
                     {
                         <tr>
-                            <td colspan="4" class="text-center">No hay registros para este mes.</td>
+                            <td colspan="4" class="text-center py-4">
+                                <i class="bi bi-exclamation-circle me-2"></i>No hay registros para este mes.
+                            </td>
                         </tr>
                     }
                 </tbody>

@@ -6,7 +6,7 @@
 
 <h2>Listado de Órdenes</h2>
 <p>
-    <a asp-action="SeleccionarClienteOrden" asp-controller="Orden" class="btn btn-success">
+    <a asp-action="CrearClienteVehiculo" asp-controller="Orden" class="btn btn-success">
         Nueva Orden
     </a>
 </p>
@@ -27,7 +27,13 @@
     <tbody>
         @foreach (var o in list)
         {
-            <tr ondblclick="window.location='@Url.Action("Editar","Orden", new { id = o.Id })'">
+            // Determina destino según rol
+            var url = User.IsInRole("Mecanico")
+            ? Url.Action("AgregarEntrega", "Orden", new { id = o.Id })
+            : Url.Action("Editar", "Orden", new { id = o.Id });
+
+            <tr style="cursor:pointer;"
+                ondblclick="location.href='@url'">
                 <td>@o.Id</td>
                 <td>@o.Creacion.ToString("g")</td>
                 <td>@o.Cliente</td>
@@ -49,20 +55,16 @@
                     {
                         case "Pendiente":
                             <span class="text-warning">@o.Estado</span>
-                            ;
-                            break;
+                            ; break;
                         case "En Proceso":
                             <span class="text-primary">@o.Estado</span>
-                            ;
-                            break;
+                            ; break;
                         case "Entregado":
                             <span class="text-success">@o.Estado</span>
-                            ;
-                            break;
+                            ; break;
                         default:
                             @o.Estado
-                            ;
-                            break;
+                            ; break;
                     }
                 </td>
             </tr>

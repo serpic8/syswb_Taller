@@ -37,7 +37,6 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador")]
         public IActionResult Detalle()
         {
-            // Vista en blanco para agregar
             return View();
         }
 
@@ -63,57 +62,22 @@ namespace syswb_Taller.Controllers
             catch (SqlException ex)
             {
                 ModelState.AddModelError("", ex.Message);
-                return View(); // vuelve a mostrar el formulario con errores
+                return View();
             }
         }
 
         // GET: Mostrar formulario de edición
-        // GET: Mostrar formulario de edición + productos asociados
         [HttpGet]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(int id)
         {
-            // 1) Traer el proveedor (con EF directo, o SP si quieres)
             var proveedor = await _bdTallerContext.Proveedores
                 .FirstOrDefaultAsync(p => p.IdProveedor == id);
             if (proveedor == null) return NotFound();
 
-            // 2) Traer todos los productos activos para el dropdown
-            ViewBag.TodosProductos = await _bdTallerContext.ProductoRepuestos
-                .Where(p => p.PrActivo)
-                .ToListAsync();
-
-            // 3) Leer los productos asociados usando DbDataReader
-            var asociados = new List<ProveedorProducto>();
-            var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "dbo.Get_ProductosPorProveedor";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idProveedor", id));
-
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                asociados.Add(new ProveedorProducto
-                {
-                    IdProveedor = id,
-                    IdProducto = reader.GetInt32(0),
-                    PrecioRef = reader.GetDouble(2),
-                    Activo = reader.GetBoolean(3),
-                    IdProductoNavigation = new ProductoRepuesto
-                    {
-                        IdProducto = reader.GetInt32(0),
-                        PrNombre = reader.GetString(1)
-                    }
-                });
-            }
-
-            ViewBag.ProductosAsociados = asociados;
+            await CargarDatosProveedor(id);
             return View(proveedor);
         }
-
-
 
         // POST: Guardar cambios de edición
         [HttpPost]
@@ -139,22 +103,15 @@ namespace syswb_Taller.Controllers
             {
                 ModelState.AddModelError("", ex.Message);
 
-                // Recarga el proveedor para repoblar el formulario
+                // Recuperar proveedor y recargar ViewBags
                 var proveedor = await _bdTallerContext.Proveedores
-                    .FromSqlRaw("EXEC Get_Proveedores @Nombre, @Activo",
-                        new SqlParameter("@Nombre", DBNull.Value),
-                        new SqlParameter("@Activo", DBNull.Value))
-                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.IdProveedor == id);
-
+                await CargarDatosProveedor(id);
                 return View(proveedor);
             }
-                       
-
         }
 
-
-        // GET: SP trae productos asociados
+        // GET: Productos asociados como JSON (opcional)
         [HttpGet]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Productos(int idProveedor)
@@ -166,7 +123,7 @@ namespace syswb_Taller.Controllers
             return Json(lista);
         }
 
-        // POST: agregar relación
+        // POST: Agregar producto asociado
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador")]
@@ -191,7 +148,7 @@ namespace syswb_Taller.Controllers
             }
         }
 
-        // POST: actualizar precio y/o estado
+        // POST: Actualizar precio/estado producto asociado
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador")]
@@ -199,8 +156,8 @@ namespace syswb_Taller.Controllers
         {
             var pProv = new SqlParameter("@idProveedor", idProveedor);
             var pProd = new SqlParameter("@idProducto", idProducto);
-            var pPrecio = new SqlParameter("@precioRef", precioRef.HasValue ? (object)precioRef.Value : DBNull.Value);
-            var pActivo = new SqlParameter("@activo", activo.HasValue ? (object)activo.Value : DBNull.Value);
+            var pPrecio = new SqlParameter("@precioRef", precioRef ?? (object)DBNull.Value);
+            var pActivo = new SqlParameter("@activo", activo ?? (object)DBNull.Value);
 
             try
             {
@@ -217,7 +174,7 @@ namespace syswb_Taller.Controllers
             }
         }
 
-        // POST: alternar activo
+        // POST: Alternar estado activo del producto asociado
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador")]
@@ -238,6 +195,61 @@ namespace syswb_Taller.Controllers
                 TempData["ErrorProducto"] = ex.Message;
                 return RedirectToAction("Editar", new { id = idProveedor });
             }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> ToggleProveedor(int idProveedor)
+        {
+            var pId = new SqlParameter("@idProveedor", idProveedor);
+            try
+            {
+                await _bdTallerContext.Database.ExecuteSqlRawAsync(
+                    "EXEC Mod_EstadoProv @idProveedor", pId);
+                return RedirectToAction("Lista");
+            }
+            catch (SqlException ex)
+            {
+                TempData["ErrorProveedor"] = ex.Message;
+                return RedirectToAction("Lista");
+            }
+        }
+
+
+        /// <summary>
+        /// Método privado para reconstruir productos activos y asociados
+        /// </summary>
+        private async Task CargarDatosProveedor(int id)
+        {
+            ViewBag.TodosProductos = await _bdTallerContext.ProductoRepuestos
+                .Where(p => p.PrActivo)
+                .ToListAsync();
+
+            var asociados = new List<ProveedorProducto>();
+            var conn = _bdTallerContext.Database.GetDbConnection();
+            await conn.OpenAsync();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "dbo.Get_ProductosPorProveedor";
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@idProveedor", id));
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                asociados.Add(new ProveedorProducto
+                {
+                    IdProveedor = id,
+                    IdProducto = reader.GetInt32(0),
+                    PrecioRef = reader.GetDouble(2),
+                    Activo = reader.GetBoolean(3),
+                    IdProductoNavigation = new ProductoRepuesto
+                    {
+                        IdProducto = reader.GetInt32(0),
+                        PrNombre = reader.GetString(1)
+                    }
+                });
+            }
+            ViewBag.ProductosAsociados = asociados;
         }
 
     }
