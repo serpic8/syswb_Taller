@@ -59,6 +59,7 @@ namespace syswb_Taller.Controllers
         }
 
         // GET: Resumen de Caja Diaria
+        // GET: Resumen de Caja Diaria
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Lista(int? anio, int? mes)
         {
@@ -66,7 +67,7 @@ namespace syswb_Taller.Controllers
             int m = mes ?? DateTime.Today.Month;
 
             var resumen = new List<dynamic>();
-            var conn = _bdTallerContext.Database.GetDbConnection();
+            using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
             using (var cmd = conn.CreateCommand())
@@ -81,15 +82,15 @@ namespace syswb_Taller.Controllers
                 {
                     resumen.Add(new
                     {
-                        Fecha = reader.GetDateTime(0).Date,
-                        Ingreso = reader.GetDouble(1),
-                        Egreso = reader.GetDouble(2),
-                        Balance = reader.GetDouble(3)
+                        IdCaja = reader.GetInt32(0),        
+                        Fecha = reader.GetDateTime(1).Date,
+                        Ingreso = reader.GetDouble(2),
+                        Egreso = reader.GetDouble(3),
+                        Balance = reader.GetDouble(4)
                     });
                 }
             }
 
-            // Verifica si hay una caja abierta
             bool cajaAbierta = await _bdTallerContext.CajaDiaria
                 .AsNoTracking()
                 .AnyAsync(c => c.CjCierre == null);
@@ -103,79 +104,44 @@ namespace syswb_Taller.Controllers
         }
 
 
+
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
-        public async Task<IActionResult> Detalle(int idCaja)
+        [HttpGet]
+        public async Task<IActionResult> Detalle(int idCaja, DateTime fecha)
         {
-            var caja = await _bdTallerContext.CajaDiaria
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.IdCaja == idCaja);
+            var dtDetail = new DataTable();
+            var dtResumen = new DataTable();
 
-            if (caja == null)
-            {
-                // No existe la caja con ese Id
-                ViewBag.IngresosEgresos = new List<dynamic>();
-                ViewBag.DetalleFinanzas = new List<dynamic>();
-                ViewBag.Fecha = null;
-                ViewBag.IdCaja = null;
-                return View();
-            }
-
-            DateTime fechaCaja = caja.CjFecha.ToDateTime(TimeOnly.MinValue);
-
-            var conn = _bdTallerContext.Database.GetDbConnection();
+            using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
-            var ingresosEgresos = new List<dynamic>();
+            // 1) Detalle de movimientos para el día
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "dbo.Get_CajaDiariaIngresosEgresosPorDia";
+                cmd.CommandText = "Get_CajaDiariaDetalleFinanzas";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new SqlParameter("@IdCaja", idCaja));
+                cmd.Parameters.Add(new SqlParameter("@Fecha", SqlDbType.Date) { Value = fecha.Date });
+                cmd.Parameters.Add(new SqlParameter("@IdCaja", SqlDbType.Int) { Value = idCaja });
 
                 using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    ingresosEgresos.Add(new
-                    {
-                        Fecha = reader.GetDateTime(0).Date,
-                        TotalIngresos = reader.GetDouble(1),
-                        TotalEgresos = reader.GetDouble(2),
-                        Balance = reader.GetDouble(3)
-                    });
-                }
+                dtDetail.Load(reader);
             }
 
-            var detalleFinanzas = new List<dynamic>();
+            // 2) Resumen de ingresos/egresos por día PARA ESA MISMA FECHA
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "dbo.Get_CajaDiariaDetalleFinanzas";
+                cmd.CommandText = "Get_CajaDiariaIngresosEgresosPorDia";
                 cmd.CommandType = CommandType.StoredProcedure;
-
-                var pFecha = cmd.CreateParameter();
-                pFecha.ParameterName = "@Fecha";
-                pFecha.DbType = DbType.Date;
-                pFecha.Value = fechaCaja.Date;
-                cmd.Parameters.Add(pFecha);
-
-                cmd.Parameters.Add(new SqlParameter("@IdCaja", idCaja));
+                cmd.Parameters.Add(new SqlParameter("@IdCaja", SqlDbType.Int) { Value = idCaja });
 
                 using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    detalleFinanzas.Add(new
-                    {
-                        FechaHora = reader.GetDateTime(0),
-                        TipoMovimiento = reader.GetString(1),
-                        Responsable = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                        Monto = reader.GetDouble(3)
-                    });
-                }
+                dtResumen.Load(reader);
             }
 
-            ViewBag.Fecha = fechaCaja;
-            ViewBag.IngresosEgresos = ingresosEgresos;
-            ViewBag.DetalleFinanzas = detalleFinanzas;
+            ViewBag.Detail = dtDetail;
+            ViewBag.Resumen = dtResumen;
             ViewBag.IdCaja = idCaja;
+            ViewBag.Fecha = fecha.ToString("yyyy-MM-dd");
 
             return View();
         }

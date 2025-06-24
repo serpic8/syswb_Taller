@@ -6,21 +6,32 @@ using System.Data;
 using System.Security.Claims;
 using syswb_Taller.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace syswb_Taller.Controllers
 {
     public class LoginController : Controller
     {
         private readonly BdTallerContext _bd;
+        private static ConcurrentDictionary<string, (string Usuario, DateTime Expiracion, bool Usado)> recoveryTokens = new();
 
         public LoginController(BdTallerContext bd) => _bd = bd;
 
-        // GET: /Account/Login
+        // Método utilitario para hashear contraseña
+        private byte[] HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            return sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        }
+
         [HttpGet]
         public IActionResult Login(string returnUrl = null)
         {
             if (User.Identity!.IsAuthenticated) return RedirectToAction("Menu", "Menu");
-            
             ViewBag.ReturnUrl = returnUrl;
             return View();
         }
@@ -30,125 +41,55 @@ namespace syswb_Taller.Controllers
         public async Task<IActionResult> Login(string username, string password, string returnUrl = null)
         {
             ViewBag.ReturnUrl = returnUrl;
+            var empleado = await _bd.Empleados.FirstOrDefaultAsync(e => e.EmpUsuario == username && e.EmpActivo);
 
-            // 1) Consulta al empleado activo
-            dynamic emp = null;
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = @"
-                    SELECT e.idEmpleado,
-                    e.empUsuario,
-                    dbo.DecryptPassword(e.empContrasena) AS Pass,
-                    r.rTipo
-                    FROM Empleado e
-                    JOIN Roles    r ON r.idRol = e.idRol
-                    WHERE e.empUsuario = @u
-                    AND e.empActivo  = 1";
-                cmd.CommandType = CommandType.Text;
-                cmd.Parameters.Add(new SqlParameter("@u", username));
-
-                using var rd = await cmd.ExecuteReaderAsync();
-                if (await rd.ReadAsync())
-                {
-                    emp = new
-                    {
-                        Id = rd.GetInt32(0),
-                        User = rd.GetString(1),
-                        Pass = rd.IsDBNull(2) ? null : rd.GetString(2),
-                        Rol = rd.GetString(3)
-                    };
-                }
-            }
-
-            if (emp == null || emp.Pass != password)
+            if (empleado == null || !HashPassword(password).SequenceEqual(empleado.EmpContrasena))
             {
                 ModelState.AddModelError("", "Usuario o contraseña inválidos.");
                 return View();
             }
 
-            // 2) Crear lista de Claims
+            var rol = await _bd.Roles.FirstOrDefaultAsync(r => r.IdRol == empleado.IdRol);
+
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, emp.Id.ToString()),
-                new Claim(ClaimTypes.Name,           emp.User),
-                new Claim(ClaimTypes.Role,           emp.Rol)
+                new Claim(ClaimTypes.NameIdentifier, empleado.IdEmpleado.ToString()),
+                new Claim(ClaimTypes.Name, empleado.EmpUsuario),
+                new Claim(ClaimTypes.Role, rol?.RTipo ?? "")
             };
 
-            // 3) Construir ClaimsIdentity
-            var claimsIdentity = new ClaimsIdentity(
-                claims,
-                CookieAuthenticationDefaults.AuthenticationScheme
-            );
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var properties = new AuthenticationProperties { AllowRefresh = true, IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) };
 
-            // 4) Configurar AuthenticationProperties
-            var properties = new AuthenticationProperties
-            {
-                AllowRefresh = true,                                           // permite renovar la cookie
-                IsPersistent = true,                                           // persiste tras cerrar el navegador
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)               // tiempo de vida de la cookie
-            };
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), properties);
 
-            // 5) Firmar la cookie enviando el ClaimsPrincipal
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                properties
-            );
-
-            // 6) Redirigir a la URL original o al menú
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                return Redirect(returnUrl);
-
-            return RedirectToAction("Menu", "Menu");
+            return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) ? Redirect(returnUrl) : RedirectToAction("Menu", "Menu");
         }
 
-
-
-
-        // GET: /Account/Registrar
         [HttpGet]
         public IActionResult Registrar()
         {
-            // Para poblar dropdown de Roles (si lo deseas):
             ViewBag.Roles = _bd.Roles.ToList();
             return View();
         }
 
-        // POST: /Account/Registrar
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Registrar(
-            string pNombre,
-            string pApellido,
-            string pTelefono,
-            string pCedula,
-            string empUsuario,
-            int idRol,
-            string contrasena_texto
-        )
+        public async Task<IActionResult> Registrar(string pNombre, string pApellido, string pTelefono, string pCedula, string empUsuario, int idRol, string contrasena_texto)
         {
-            // Llamar a tu SP Ins_Empleado
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Ins_Empleado";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@pNombre", pNombre));
-            cmd.Parameters.Add(new SqlParameter("@pApellido", pApellido));
-            cmd.Parameters.Add(new SqlParameter("@pTelefono", pTelefono));
-            cmd.Parameters.Add(new SqlParameter("@pCedula", pCedula));
-            cmd.Parameters.Add(new SqlParameter("@empUsuario", empUsuario));
-            cmd.Parameters.Add(new SqlParameter("@idRol", idRol));
-            cmd.Parameters.Add(new SqlParameter("@contrasena_texto", contrasena_texto));
-            await cmd.ExecuteNonQueryAsync();
+            var p1 = new SqlParameter("@pNombre", pNombre);
+            var p2 = new SqlParameter("@pApellido", pApellido);
+            var p3 = new SqlParameter("@pTelefono", pTelefono);
+            var p4 = new SqlParameter("@pCedula", pCedula);
+            var p5 = new SqlParameter("@empUsuario", empUsuario);
+            var p6 = new SqlParameter("@idRol", idRol);
+            var p7 = new SqlParameter("@contrasena_texto", contrasena_texto);
 
-            // Tras registrar, redirige al Login
+            await _bd.Database.ExecuteSqlRawAsync("EXEC Ins_Empleado @pNombre, @pApellido, @pTelefono, @pCedula, @empUsuario, @idRol, @contrasena_texto", p1, p2, p3, p4, p5, p6, p7);
+
             return RedirectToAction(nameof(Login));
         }
 
-        // POST: /Account/Logout
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
@@ -157,7 +98,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction(nameof(Login));
         }
 
-        // GET: /Account/AccessDenied
         [HttpGet]
         public IActionResult AccessDenied() => View();
 
@@ -169,7 +109,87 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Login", "Login");
         }
 
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult SolicitarRecuperacion() => View();
 
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<IActionResult> SolicitarRecuperacion(string empUsuario)
+        {
+            if (string.IsNullOrEmpty(empUsuario))
+            {
+                ModelState.AddModelError("", "Debe ingresar un usuario.");
+                return View();
+            }
+
+            var empleado = await _bd.Empleados.FirstOrDefaultAsync(e => e.EmpUsuario == empUsuario);
+            if (empleado == null)
+            {
+                ModelState.AddModelError("", "Usuario no encontrado.");
+                return View();
+            }
+
+            var token = Guid.NewGuid().ToString();
+            recoveryTokens[token] = (empUsuario, DateTime.UtcNow.AddHours(1), false);
+
+            var urlRecuperacion = Url.Action("RestablecerPassword", "Login", new { token = token }, Request.Scheme);
+            ViewBag.Mensaje = $"Link para restablecer contraseña: <a href='{urlRecuperacion}' target='_blank'>{urlRecuperacion}</a>";
+
+            return View(); // vuelve a mostrar la misma vista
+        }
+
+
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult RestablecerPassword(string token)
+        {
+            if (string.IsNullOrEmpty(token) || !recoveryTokens.ContainsKey(token)) return BadRequest("Token inválido o expirado.");
+
+            var (usuario, expiracion, usado) = recoveryTokens[token];
+            if (usado || expiracion < DateTime.UtcNow) return BadRequest("Token inválido o expirado.");
+
+            return View(new RestablecerPasswordViewModel { Token = token });
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<IActionResult> RestablecerPassword(RestablecerPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            if (!recoveryTokens.TryGetValue(model.Token, out var data)) return BadRequest("Token inválido o expirado.");
+            if (data.Usado || data.Expiracion < DateTime.UtcNow) return BadRequest("Token inválido o expirado.");
+
+            var empleado = await _bd.Empleados.FirstOrDefaultAsync(e => e.EmpUsuario == data.Usuario);
+            if (empleado == null)
+            {
+                ModelState.AddModelError("", "Empleado no encontrado.");
+                return View(model);
+            }
+
+            empleado.EmpContrasena = HashPassword(model.NuevaContrasena);
+            recoveryTokens[model.Token] = (data.Usuario, data.Expiracion, true);
+
+            await _bd.SaveChangesAsync();
+            TempData["Mensaje"] = "Contraseña actualizada correctamente.";
+            return RedirectToAction("Login");
+        }
+
+        public class RestablecerPasswordViewModel
+        {
+            [Required]
+            public string Token { get; set; }
+
+            [Required]
+            [DataType(DataType.Password)]
+            [MinLength(8)]
+            public string NuevaContrasena { get; set; }
+
+            [Required]
+            [DataType(DataType.Password)]
+            [Compare("NuevaContrasena", ErrorMessage = "Las contraseñas no coinciden.")]
+            public string ConfirmarContrasena { get; set; }
+        }
     }
 }
-

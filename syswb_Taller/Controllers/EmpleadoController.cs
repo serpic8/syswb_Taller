@@ -18,16 +18,66 @@ namespace syswb_Taller.Controllers
         }
 
         // GET: Lista filtrada de empleados
+        public class EmpleadoDto
+        {
+            public int IdEmpleado { get; set; }
+            public string PNombre { get; set; }
+            public string PApellido { get; set; }
+            public string PTelefono { get; set; }
+            public string RTipo { get; set; }
+            public bool EmpActivo { get; set; }
+        }
+
+        // GET: Lista filtrada de empleados usando DTO y FromSqlRaw
         [HttpGet]
         public async Task<IActionResult> Lista(string nombre, int? rol, bool? activo)
         {
-            var nombreParam = new SqlParameter("@Nombre", (object?)nombre ?? DBNull.Value);
-            var rolParam = new SqlParameter("@Rol", (object?)rol ?? DBNull.Value);
-            var activoParam = new SqlParameter("@Activo", (object?)activo ?? DBNull.Value);
+            var empleados = new List<EmpleadoDto>();
 
-            var empleados = await _bdTallerContext.Empleados
-                .FromSqlRaw("EXEC Get_Trabajadores @Nombre, @Rol, @Activo", nombreParam, rolParam, activoParam)
-                .ToListAsync();
+            var connection = _bdTallerContext.Database.GetDbConnection();
+
+            try
+            {
+                await connection.OpenAsync();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = "Get_Trabajadores";
+                command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                var pNombre = command.CreateParameter();
+                pNombre.ParameterName = "@Nombre";
+                pNombre.Value = (object?)nombre ?? DBNull.Value;
+                command.Parameters.Add(pNombre);
+
+                var pRol = command.CreateParameter();
+                pRol.ParameterName = "@Rol";
+                pRol.Value = (object?)rol ?? DBNull.Value;
+                command.Parameters.Add(pRol);
+
+                var pActivo = command.CreateParameter();
+                pActivo.ParameterName = "@Activo";
+                pActivo.Value = (object?)activo ?? DBNull.Value;
+                command.Parameters.Add(pActivo);
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    empleados.Add(new EmpleadoDto
+                    {
+                        IdEmpleado = reader.GetInt32(reader.GetOrdinal("idEmpleado")),
+                        PNombre = reader.GetString(reader.GetOrdinal("pNombre")),
+                        PApellido = reader.GetString(reader.GetOrdinal("pApellido")),
+                        PTelefono = reader.GetString(reader.GetOrdinal("pTelefono")),
+                        RTipo = reader.GetString(reader.GetOrdinal("Rol")),
+                        EmpActivo = reader.GetBoolean(reader.GetOrdinal("Activo"))
+                    });
+                }
+            }
+            finally
+            {
+                await connection.CloseAsync();
+            }
 
             ViewBag.NombreFiltro = nombre;
             ViewBag.RolFiltro = rol;
@@ -36,10 +86,19 @@ namespace syswb_Taller.Controllers
             return View(empleados);
         }
 
+
+
+
+
+
         // GET: Formulario de nuevo empleado
         [HttpGet]
         public IActionResult Nuevo()
         {
+            ViewBag.Roles = _bdTallerContext.Roles
+                    .Select(r => new Roles { IdRol = r.IdRol, RTipo = r.RTipo })
+                    .ToList();
+
             return View();
         }
 
@@ -80,6 +139,10 @@ namespace syswb_Taller.Controllers
             var empleado = await _bdTallerContext.Empleados
                 .Include(e => e.IdPersonaNavigation)
                 .FirstOrDefaultAsync(e => e.IdEmpleado == id);
+
+            ViewBag.Roles = _bdTallerContext.Roles
+                    .Select(r => new Roles { IdRol = r.IdRol, RTipo = r.RTipo })
+                    .ToList();
 
             if (empleado == null) return NotFound();
 

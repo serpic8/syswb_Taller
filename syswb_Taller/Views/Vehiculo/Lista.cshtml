@@ -1,83 +1,127 @@
 ﻿@model List<dynamic>
+@using System.Globalization
+@removeTagHelper "Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers"
+
 @{
-    ViewBag.Title = "Listado de Vehículos";
+    ViewBag.Title = "Vehículos";
     string filtroMatricula = ViewBag.FiltroMatricula as string ?? "";
-    bool? filtroActivo    = ViewBag.FiltroActivo   as bool?;
+    bool? filtroActivo = ViewBag.FiltroActivo as bool?;
     var vehiculos = Model ?? new List<dynamic>();
 }
 
-<h2>Listado de Vehículos</h2>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
 
-<form method="get" class="row g-3 mb-4">
-    <div class="col-md-4">
-        <label class="form-label">Matrícula</label>
-        <input name="matricula" class="form-control" placeholder="Buscar matrícula" value="@filtroMatricula" />
-    </div>
-    <div class="col-md-2">
-        <label class="form-label">Activo</label>
-        <select name="activo" class="form-select">
-            <option value="">-- Todos --</option>
-            <!option value="true"  @(filtroActivo==true  ? "selected" : "")>Sí</!option>
-            <!option value="false" @(filtroActivo==false ? "selected" : "")>No</!option>
-        </select>
-    </div>
-    <div class="col-md-2 d-flex align-items-end">
-        <button class="btn btn-primary">Filtrar</button>
-    </div>
-</form>
+@section Header { }
+@section Footer { }
 
-<div class="mb-3">
-    <a asp-action="SeleccionarCliente" asp-controller="Vehiculo" class="btn btn-success">
-        Nuevo Vehículo
-    </a>
+<style>
+    .filter-bar {
+        background: #fff;
+        padding: 1rem;
+        border-radius: .5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+
+        .filter-bar .btn-group a.active {
+            background-color: #0097cc;
+            color: #fff;
+            border-color: #0097cc;
+        }
+
+    .table-card {
+        border-radius: .5rem;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+        .table-card .card-header {
+            background: #0097cc;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .table-card tbody tr:hover {
+            background: rgba(0,151,204,0.1);
+            cursor: pointer;
+        }
+</style>
+
+<div class="filter-bar row align-items-center">
+    <div class="col-md-6">
+        <h2 class="mb-0"><i class="bi bi-car-front-fill me-2"></i>Vehículos</h2>
+    </div>
+
+    <form method="get" class="col-md-6 d-flex justify-content-end align-items-end">
+        <div class="me-3">
+            <label class="form-label mb-1"><i class="bi bi-search me-1"></i>Matrícula</label>
+            <input name="matricula" class="form-control form-control-sm" placeholder="Buscar matrícula" value="@filtroMatricula" />
+        </div>
+        <div class="me-3">
+            <label class="form-label mb-1"><i class="bi bi-toggle2-on me-1"></i>Activo</label>
+            <select name="activo" class="form-select form-select-sm">
+                <option value="">-- Todos --</option>
+                <option value="true" @(filtroActivo == true ? "selected" : "")>Sí</option>
+                <option value="false" @(filtroActivo == false ? "selected" : "")>No</option>
+            </select>
+        </div>
+        <button class="btn btn-sm btn-primary align-self-end">
+            <i class="bi bi-funnel-fill me-1"></i> Filtrar
+        </button>
+    </form>
 </div>
 
-<table class="table table-bordered table-hover table-sm">
-    <thead class="table-dark">
-        <tr>
-            <th>Matrícula</th>
-            <th>Marca</th>
-            <th>Modelo</th>
-            <th>Año</th>
-            <th>Color</th>
-            <th class="text-center">Activo</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (vehiculos.Any())
-        {
-            foreach (var v in vehiculos)
-            {
-                <tr ondblclick="window.location='@Url.Action("Editar","Vehiculo", new { id = v.IdVehiculo })'" style="cursor:pointer;">
-                    <td>@v.vhMatricula</td>
-                    <td>@v.vhMarca</td>
-                    <td>@v.vhModelo</td>
-                    <td>@v.vhAño</td>
-                    <td>@v.vhColor</td>
-                    <td class="text-center">
-                        <form asp-action="CambiarEstado" asp-controller="Vehiculo" method="post" class="d-inline" onclick="event.stopPropagation();">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="idVehiculo" value="@v.IdVehiculo" />
-                            <button type="submit" class="btn btn-sm p-0">
-                                @if (v.vhActivo)
-                                {
-                                    <span class="text-success">&#10003;</span>
-                                }
-                                else
-                                {
-                                    <span class="text-danger">&#10007;</span>
-                                }
-                            </button>
-                        </form>
-                    </td>                    
+<div class="table-card">
+    <div class="card-header">
+        <i class="bi bi-car-front-fill me-2"></i> Lista de Vehículos
+        <a asp-action="SeleccionarCliente" asp-controller="Vehiculo" class="btn btn-sm btn-success float-end">
+            <i class="bi bi-plus-circle-fill me-1"></i> Nuevo
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th><i class="bi bi-123 me-1"></i>Matrícula</th>
+                    <th><i class="bi bi-car-front me-1"></i>Marca</th>
+                    <th><i class="bi bi-car-front me-1"></i>Modelo</th>
+                    <th><i class="bi bi-calendar me-1"></i>Año</th>
+                    <th><i class="bi bi-palette me-1"></i>Color</th>
+                    <th class="text-center"><i class="bi bi-check-circle me-1"></i>Activo</th>
                 </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="7" class="text-center">No se encontraron vehículos.</td>
-            </tr>
-        }
-    </tbody>
-</table>
+            </thead>
+            <tbody>
+                @if (vehiculos.Any())
+                {
+                    foreach (var v in vehiculos)
+                    {
+                        <tr ondblclick="window.location='@Url.Action("Editar","Vehiculo", new { id = v.IdVehiculo })'">
+                            <td>@v.vhMatricula</td>
+                            <td>@v.vhMarca</td>
+                            <td>@v.vhModelo</td>
+                            <td>@v.vhAño</td>
+                            <td>@v.vhColor</td>
+                            <td class="text-center align-middle" onclick="event.stopPropagation();">
+                                <form asp-action="CambiarEstado" asp-controller="Vehiculo" method="post" class="d-inline-block" onsubmit="event.stopPropagation();">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="idVehiculo" value="@v.IdVehiculo" />
+                                    <button type="submit" class="btn btn-sm d-flex justify-content-center align-items-center @(v.vhActivo ? "text-success" : "text-danger")" title="Alternar estado" style="width: 32px; height: 32px;">
+                                        <i class="bi @(v.vhActivo ? "bi-check-lg" : "bi-x-lg")"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="bi bi-exclamation-circle me-2"></i>No se encontraron vehículos.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

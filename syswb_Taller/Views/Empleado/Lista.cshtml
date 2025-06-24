@@ -1,4 +1,4 @@
-﻿@model List<syswb_Taller.Models.Empleado>
+﻿@model List<syswb_Taller.Controllers.EmpleadoController.EmpleadoDto>
 @using System.Globalization
 @removeTagHelper "Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers"
 @{
@@ -108,14 +108,13 @@
             <tbody>
                 @if (empleados.Any())
                 {
-                    
-                    @foreach (var e in Model)
+                    @foreach (var e in empleados)
                     {
-                        <tr>
-                            <td>@e.IdPersonaNavigation.PNombre</td>
-                            <td>@e.IdPersonaNavigation.PApellido</td>
-                            <td>@e.IdPersonaNavigation.PTelefono</td>
-                            <td>@e.IdRolNavigation.RTipo</td>
+                        <tr ondblclick="location.href='@Url.Action("Editar", "Empleado", new { id = e.IdEmpleado })'">
+                            <td>@e.PNombre</td>
+                            <td>@e.PApellido</td>
+                            <td>@e.PTelefono</td>
+                            <td>@e.RTipo</td>
                             <td class="text-center align-middle" onclick="event.stopPropagation();">
                                 <form asp-action="ToggleEstado" method="post" style="display:inline" onsubmit="event.stopPropagation();">
                                     @Html.AntiForgeryToken()
@@ -137,6 +136,7 @@
                     </tr>
                 }
             </tbody>
+
         </table>
     </div>
 </div>

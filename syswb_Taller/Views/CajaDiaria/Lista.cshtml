@@ -1,16 +1,15 @@
 ﻿@using System.Globalization
 @{
     ViewBag.Title = "Resumen de Caja Diaria";
-    var resumen = ViewBag.Resumen as List<dynamic>;
-    int anio = ViewBag.SelectedYear;
-    int mes = ViewBag.SelectedMonth;
-    bool cajaAbierta = ViewBag.CajaAbierta ?? false;
+    var resumen      = ViewBag.Resumen      as List<dynamic> ?? new List<dynamic>();
+    int anio         = ViewBag.SelectedYear  ?? DateTime.Today.Year;
+    int mes          = ViewBag.SelectedMonth ?? DateTime.Today.Month;
+    bool cajaAbierta = ViewBag.CajaAbierta   ?? false;
 
-    string anioStr = anio.ToString();
-    string mesStr = mes.ToString();
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
 @section Header { }
 @section Footer { }
 
@@ -50,37 +49,33 @@
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <script>
-        alert("@TempData["SuccessMessage"]");
-    </script>
+    <script>alert("@TempData["SuccessMessage"]");</script>
 }
 
 <div class="container mt-4">
-    <h2 class="mb-4"><i class="bi bi-cash me-2"></i>Resumen de Caja Diaria</h2>
+    <h2 class="mb-4"><i class="bi bi-box-seam me-2"></i>Resumen de Caja Diaria</h2>
 
     <div class="filter-bar row align-items-center">
-        <!-- Navegación Principal -->
         <div class="col-md-6">
             <div class="btn-group" role="group">
-                <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-secondary">
+                <a href="@Url.Action("Resumen","MovimientoFinanciero")" class="btn btn-outline-secondary">
                     <i class="bi bi-speedometer2 me-1"></i> Resumen
                 </a>
-                <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary">
+                <a href="@Url.Action("Index","Trabajadores")" class="btn btn-outline-secondary">
                     <i class="bi bi-people-fill me-1"></i> Trabajadores
                 </a>
-                <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary">
+                <a href="@Url.Action("Lista","Proveedor")" class="btn btn-outline-secondary">
                     <i class="bi bi-truck-flatbed me-1"></i> Proveedores
                 </a>
-                <a href="@Url.Action("ListaMovimientos", "MovimientoFinanciero")" class="btn btn-outline-secondary">
+                <a href="@Url.Action("ListaMovimientos","MovimientoFinanciero")" class="btn btn-outline-secondary">
                     <i class="bi bi-cash-stack me-1"></i> Finanzas
                 </a>
-                <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-primary">
+                <a href="@Url.Action("Lista","CajaDiaria")" class="btn btn-primary">
                     <i class="bi bi-box-seam me-1"></i> Caja Diaria
                 </a>
             </div>
         </div>
 
-        <!-- Acciones de Caja (Abrir/Cerrar) -->
         <div class="col-md-6 d-flex justify-content-end align-items-center">
             @if (!cajaAbierta)
             {
@@ -96,7 +91,7 @@
             else
             {
                 <form asp-action="CerrarCaja" asp-controller="CajaDiaria" method="post" class="d-inline me-3"
-                      onsubmit="return confirm('¿Está seguro de que desea cerrar la caja? Esta acción no se puede deshacer.');">
+                      onsubmit="return confirm('¿Seguro que deseas cerrar la caja?');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="anio" value="@anio" />
                     <input type="hidden" name="mes" value="@mes" />
@@ -106,30 +101,25 @@
                 </form>
             }
 
-            <!-- Filtros: Año y Mes -->
             <form method="get" class="d-flex align-items-end" id="filtroForm">
                 <div class="me-3">
                     <label for="anio" class="form-label mb-1">
                         <i class="bi bi-calendar3 me-1"></i>Año
                     </label>
-                    <input type="number"
-                           class="form-control form-control-sm"
-                           name="anio" id="anio"
-                           value="@anioStr"
-                           min="2000" max="@DateTime.Now.Year"
-                           placeholder="Ej: 2025" />
+                    <input type="number" class="form-control form-control-sm"
+                           name="anio" id="anio" value="@anio"
+                           min="2000" max="@DateTime.Now.Year" />
                 </div>
                 <div class="me-3">
                     <label for="mes" class="form-label mb-1">
                         <i class="bi bi-calendar2-month me-1"></i>Mes
                     </label>
-                    <select class="form-select form-select-sm"
-                            name="mes" id="mes">
+                    <select class="form-select form-select-sm" name="mes" id="mes">
                         <option value="">-- Todos --</option>
                         @for (int i = 1; i <= 12; i++)
                         {
-                            var mesNombre = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i);
-                            <!option value="@i" @(mes == i ? "selected" : "")>@mesNombre</!option>
+                            var nombre = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i);
+                            <!option value="@i" @(mes == i ? "selected" : "")>@nombre</!option>
                         }
                     </select>
                 </div>
@@ -140,7 +130,6 @@
         </div>
     </div>
 
-    <!-- Tabla de Resumen -->
     <div class="table-card">
         <div class="card-header">
             <i class="bi bi-calendar2-week me-2"></i>Detalle de Caja por Día
@@ -156,17 +145,24 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (resumen != null && resumen.Any())
+                    @if (resumen.Any())
                     {
-                        foreach (var r in resumen)
+                        @foreach (var r in resumen)
                         {
-                            <tr onclick="location.href='@Url.Action("Detalle", "CajaDiaria", new { fecha = r.Fecha.ToString("yyyy-MM-dd") })'">
-                                <td>@r.Fecha.ToString("yyyy-MM-dd")</td>
-                                <td class="text-end">@r.Ingreso.ToString("C")</td>
-                                <td class="text-end">@r.Egreso.ToString("C")</td>
-                                <td class="text-end">@r.Balance.ToString("C")</td>
+                            var fechaFormateada = ((DateTime)r.Fecha).ToString("yyyy-MM-dd");
+                            var ingreso = ((double)r.Ingreso).ToString("C", new CultureInfo("es-NI"));
+                            var egreso = ((double)r.Egreso).ToString("C", new CultureInfo("es-NI"));
+                            var balance = ((double)r.Balance).ToString("C", new CultureInfo("es-NI"));
+
+                            <tr style="cursor:pointer"
+                                onclick="location.href='@Url.Action("Detalle","CajaDiaria", new { idCaja = r.IdCaja, fecha = ((DateTime)r.Fecha).ToString("yyyy-MM-dd") })'">
+                                <td>@fechaFormateada</td>
+                                <td class="text-end">@ingreso</td>
+                                <td class="text-end">@egreso</td>
+                                <td class="text-end">@balance</td>
                             </tr>
                         }
+
                     }
                     else
                     {
