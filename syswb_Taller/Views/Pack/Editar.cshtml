@@ -9,43 +9,63 @@
     var detalles = ViewBag.Detalles as List<dynamic> ?? new();
     double costo = ViewBag.CostoTotal != null ? (double)ViewBag.CostoTotal : 0.0;
     var niCulture = new CultureInfo("es-NI");
-
 }
 
-<h2>Editar Pack de Reparación</h2>
+@section Header { }
+@section Footer { }
 
-<form asp-action="Editar" method="post" class="mb-4">
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+    <style>
+        .select2-container .select2-selection--single {
+            height: 38px;
+            padding: 6px 12px;
+            font-size: 1rem;
+        }
+    </style>
+}
+
+<h2 class="mb-4"><i class="bi bi-wrench-adjustable-circle me-2"></i>Editar Pack de Reparación</h2>
+
+<form asp-action="Editar" method="post" class="card p-4 shadow-sm border-0 mb-5">
     @Html.AntiForgeryToken()
     <input type="hidden" name="idPack" value="@pack.IdPack" />
 
     <div class="mb-3">
-        <label class="form-label">Nombre del Pack</label>
+        <label class="form-label fw-semibold">Nombre del Pack</label>
         <input name="pckNombre" value="@pack.PckNombre" class="form-control" required />
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Descripción (opcional)</label>
+        <label class="form-label fw-semibold">Descripción (opcional)</label>
         <textarea name="pckDescripcion" class="form-control" rows="3">@pack.PckDescripcion</textarea>
     </div>
 
-    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-    <a asp-action="Lista" class="btn btn-secondary ms-2">Cancelar</a>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save2 me-1"></i>Guardar Cambios
+        </button>
+        <a asp-action="Lista" class="btn btn-secondary">
+            <i class="bi bi-x-circle me-1"></i>Cancelar
+        </a>
+    </div>
 </form>
 
 <hr />
 
-<h3>Detalles del Pack</h3>
+<h3 class="mb-3">Detalles del Pack</h3>
 <p><strong>Costo Total: </strong>@costo.ToString("C", niCulture)</p>
 
 <div class="row mb-4">
     <div class="col-md-6">
         <h5>Agregar Producto</h5>
-        <form asp-action="AgregarProducto" method="post" class="row g-2">
+        <form asp-action="AgregarProducto" method="post" class="row g-2 align-items-end">
             @Html.AntiForgeryToken()
             <input type="hidden" name="idPack" value="@pack.IdPack" />
             <div class="col-8">
-                <select name="idProducto" class="form-select" required>
-                    <option selected disabled>Seleccione producto</option>
+                <select name="idProducto" class="form-select select2" required>
+                    <option selected disabled></option>
                     @foreach (var prod in productos)
                     {
                         <option value="@prod.IdProducto">@prod.PrNombre</option>
@@ -63,12 +83,12 @@
 
     <div class="col-md-6">
         <h5>Agregar Servicio</h5>
-        <form asp-action="AgregarServicio" method="post" class="row g-2">
+        <form asp-action="AgregarServicio" method="post" class="row g-2 align-items-end">
             @Html.AntiForgeryToken()
             <input type="hidden" name="idPack" value="@pack.IdPack" />
             <div class="col-8">
-                <select name="idServicio" class="form-select" required>
-                    <option selected disabled>Seleccione servicio</option>
+                <select name="idServicio" class="form-select select2" required>
+                    <option selected disabled></option>
                     @foreach (var ser in servicios)
                     {
                         <option value="@ser.IdServicio">@ser.SerNombre</option>
@@ -85,7 +105,7 @@
     </div>
 </div>
 
-<table class="table table-sm table-bordered">
+<table class="table table-sm table-bordered shadow-sm">
     <thead class="table-light">
         <tr>
             <th>Tipo</th>
@@ -126,3 +146,16 @@
         }
     </tbody>
 </table>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            $('.select2').select2({
+                placeholder: "Escriba para buscar...",
+                allowClear: true,
+                width: '100%'
+            });
+        });
+    </script>
+}

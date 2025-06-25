@@ -3,30 +3,168 @@
     ViewBag.Title = "Crear Producto";
 }
 
-<h2>Crear Producto</h2>
+@if (TempData["SuccessMessage"] != null)
+{
+    <script>alert("@TempData["SuccessMessage"]");</script>
+}
 
-<form asp-action="Crear" method="post">
-    @Html.AntiForgeryToken()
-    <div class="mb-3">
-        <label class="form-label">Nombre</label>
-        <input name="prNombre" class="form-control" required />
+@section Header { }
+@section Footer { }
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .select2-container .select2-selection--single {
+            height: 48px;
+            padding: 8px 12px;
+            font-size: 1.1rem;
+        }
+    </style>
+}
+
+<div class="container mt-5">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0"><i class="bi bi-box-seam me-2"></i>Crear Nuevo Producto</h2>
+        </div>
+        <div class="card-body">
+            <form asp-action="Crear" method="post" id="productoForm" novalidate>
+                @Html.AntiForgeryToken()
+
+                <div class="mb-4">
+                    <label for="prNombre" class="form-label fw-semibold">
+                        <i class="bi bi-card-text me-1"></i>Nombre del Producto
+                    </label>
+                    <input type="text"
+                           id="prNombre"
+                           name="prNombre"
+                           class="form-control form-control-lg"
+                           placeholder="Ej: Filtro de Aceite"
+                           required
+                           autofocus />
+                </div>
+
+                <div class="mb-4">
+                    <label for="prMarca" class="form-label fw-semibold">
+                        <i class="bi bi-tags me-1"></i>Marca
+                    </label>
+                    <select id="prMarca" name="prMarca" class="form-select form-select-lg select2" data-placeholder="Seleccione o escriba una marca">
+                        <option></option>
+                        @if (ViewBag.Marcas != null)
+                        {
+                            foreach (string m in ViewBag.Marcas as List<string>)
+                            {
+                                <option value="@m">@m</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="prCategoria" class="form-label fw-semibold">
+                        <i class="bi bi-grid-3x3-gap me-1"></i>Categoría
+                    </label>
+                    <select id="prCategoria" name="prCategoria" class="form-select form-select-lg select2" data-placeholder="Seleccione o escriba una categoría">
+                        <option></option>
+                        @if (ViewBag.Categorias != null)
+                        {
+                            foreach (string c in ViewBag.Categorias as List<string>)
+                            {
+                                <option value="@c">@c</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="prCosto" class="form-label fw-semibold">
+                        <i class="bi bi-currency-exchange me-1"></i>Costo
+                    </label>
+                    <input type="text"
+                           id="prCosto"
+                           name="prCosto"
+                           class="form-control form-control-lg"
+                           placeholder="Ej: 250.00"
+                           required />
+                    <div class="form-text text-danger mt-2 d-none" id="costoError" role="alert" aria-live="assertive">
+                        Costo inválido. Solo números positivos y punto decimal permitidos.
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="prPrecioVenta" class="form-label fw-semibold">
+                        <i class="bi bi-cash-coin me-1"></i>Precio Venta
+                    </label>
+                    <input type="text"
+                           id="prPrecioVenta"
+                           name="prPrecioVenta"
+                           class="form-control form-control-lg"
+                           placeholder="Ej: 450.00"
+                           required />
+                    <div class="form-text text-danger mt-2 d-none" id="precioError" role="alert" aria-live="assertive">
+                        Precio inválido. Solo números positivos y punto decimal permitidos.
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success btn-lg flex-grow-1">
+                        <i class="bi bi-save2 me-2"></i>Guardar
+                    </button>
+                    <a asp-action="Lista" class="btn btn-outline-secondary btn-lg flex-grow-1 text-center">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Marca</label>
-        <input name="prMarca" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Categoría</label>
-        <input name="prCategoria" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Costo</label>
-        <input name="prCosto" type="number" step="0.01" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Precio Venta</label>
-        <input name="prPrecioVenta" type="number" step="0.01" class="form-control" />
-    </div>
-    <button type="submit" class="btn btn-success">Guardar</button>
-    <a asp-action="Lista" class="btn btn-secondary ms-2">Cancelar</a>
-</form>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            $('.select2').select2({
+                tags: true,
+                width: '100%',
+                placeholder: function () {
+                    return $(this).data('placeholder');
+                }
+            });
+
+            const form = document.getElementById("productoForm");
+            const costoInput = document.getElementById("prCosto");
+            const precioInput = document.getElementById("prPrecioVenta");
+            const costoError = document.getElementById("costoError");
+            const precioError = document.getElementById("precioError");
+
+            function validarCampoDecimal(input, errorDiv) {
+                const valor = input.value.trim();
+                const regex = /^[0-9]+(\.[0-9]{1,2})?$/;
+                if (!regex.test(valor) || parseFloat(valor) < 0) {
+                    errorDiv.classList.remove("d-none");
+                    return false;
+                }
+                errorDiv.classList.add("d-none");
+                return true;
+            }
+
+            costoInput.addEventListener("input", () => validarCampoDecimal(costoInput, costoError));
+            costoInput.addEventListener("blur", () => validarCampoDecimal(costoInput, costoError));
+            precioInput.addEventListener("input", () => validarCampoDecimal(precioInput, precioError));
+            precioInput.addEventListener("blur", () => validarCampoDecimal(precioInput, precioError));
+
+            form.addEventListener("submit", function (e) {
+                const validoCosto = validarCampoDecimal(costoInput, costoError);
+                const validoPrecio = validarCampoDecimal(precioInput, precioError);
+
+                if (!form.checkValidity() || !validoCosto || !validoPrecio) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                form.classList.add("was-validated");
+            });
+        });
+    </script>
+}

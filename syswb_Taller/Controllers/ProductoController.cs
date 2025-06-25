@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
+using System.Diagnostics;
 using System.Dynamic;
 using syswb_Taller.Models;
 
@@ -91,6 +92,21 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public IActionResult Crear()
         {
+            var marcas = _bdTallerContext.ProductoRepuestos
+                         .Where(p => !string.IsNullOrEmpty(p.PrMarca))
+                         .Select(p => p.PrMarca)
+                         .Distinct()
+                         .ToList();
+
+            var categorias = _bdTallerContext.ProductoRepuestos
+                                     .Where(p => !string.IsNullOrEmpty(p.PrCategoria))
+                                     .Select(p => p.PrCategoria)
+                                     .Distinct()
+                                     .ToList();
+
+            ViewBag.Marcas = marcas;
+            ViewBag.Categorias = categorias;
+
             return View();
         }
 
@@ -125,17 +141,35 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int id)
         {
-            // Reutilizar Lista para obtener todos
-            var listaResult = await Lista(null, null, null, null) as ViewResult;
-            var lista = listaResult?.Model as List<ProductoRepuesto> ?? new List<ProductoRepuesto>();
-            var prod = lista.FirstOrDefault(p => p.IdProducto == id);
-            if (prod == null) return NotFound();
+            var prod = await _bdTallerContext.ProductoRepuestos
+                          .FirstOrDefaultAsync(p => p.IdProducto == id);
+
+            if (prod == null)
+                return NotFound();
+
+            var marcas = await _bdTallerContext.ProductoRepuestos
+                             .Where(p => !string.IsNullOrEmpty(p.PrMarca))
+                             .Select(p => p.PrMarca)
+                             .Distinct()
+                             .ToListAsync();
+
+            var categorias = await _bdTallerContext.ProductoRepuestos
+                                 .Where(p => !string.IsNullOrEmpty(p.PrCategoria))
+                                 .Select(p => p.PrCategoria)
+                                 .Distinct()
+                                 .ToListAsync();
+
+            ViewBag.Marcas = marcas;
+            ViewBag.Categorias = categorias;
+
             return View(prod);
         }
+
 
         // POST: Editar Producto
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int id, string prNombre, string prMarca, string prCategoria, double? prCosto, double? prPrecioVenta, int? prStock)
         {
             try
@@ -397,25 +431,29 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> HistorialProducto(int idProducto)
         {
-            // Abre la conexión ADO.NET
             var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
-            // Crea comando para el SP
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "Get_HistorialProducto";
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new SqlParameter("@idProducto", SqlDbType.Int) { Value = idProducto });
 
-            // Ejecuta y llena DataTable
             var dt = new DataTable();
             using (var reader = await cmd.ExecuteReaderAsync())
             {
                 dt.Load(reader);
             }
 
+            await conn.CloseAsync();
+
+            ViewBag.IdProducto = idProducto; // para usar en links u otras vistas
+
             return View(dt);
         }
+
+
+
 
 
 

@@ -65,6 +65,7 @@ namespace syswb_Taller.Controllers
             string pCedula,
             string clEmail)
         {
+            pTelefono = pTelefono.Replace("-", "");
             using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
@@ -189,6 +190,8 @@ namespace syswb_Taller.Controllers
             string pCedula,
             string clEmail)
         {
+            pTelefono = pTelefono.Replace("-", "");
+
             using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
