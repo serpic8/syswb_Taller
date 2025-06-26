@@ -3,7 +3,8 @@
 @{
     ViewBag.Title = "Historial de Movimientos del Producto";
     var idProducto = ViewBag.IdProducto;
-    var nombreProducto = ViewBag.PrNombre ?? "Producto";
+    // Si más adelante cargas el nombre en el ViewBag:
+    var nombreProducto = ViewBag.PrNombre as string ?? $"#{idProducto}";
 }
 
 @section Header { }
@@ -37,7 +38,6 @@
     </style>
 }
 
-
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
         <div class="card-header bg-primary text-white d-flex align-items-center">
@@ -52,9 +52,7 @@
                 <a href="@Url.Action("IncrementarStock","Producto", new { id = idProducto })" class="btn btn-outline-info shadow-sm">
                     <i class="bi bi-box-seam fs-5"></i> <span>Stock</span>
                 </a>
-                <a href="@Url.Action("HistorialProducto", "Producto", new { idProducto = idProducto })" class="btn btn-outline-primary shadow-sm">
-                    <i class="bi bi-clock-history fs-5"></i> <span>Ver Historial</span>
-                </a>
+                @* Ya estamos en Historial, así que no es necesario el link activo *@
             </div>
 
             @if (Model?.Rows.Count > 0)
@@ -72,10 +70,17 @@
                         <tbody>
                             @foreach (System.Data.DataRow row in Model.Rows)
                             {
+                                var mod = Convert.ToInt32(row["Modificacion"]);
                                 <tr>
-                                    <td class="text-center">@((DateTime)row["FechaHora"])</td>
+                                    <td class="text-center">
+                                        @(row["FechaHora"] is DateTime dt
+                                            ? dt.ToString("g")
+                                            : row["FechaHora"].ToString())
+                                    </td>
                                     <td class="text-center">@row["Tipo"]</td>
-                                    <td class="text-end">@string.Format("{0:N2}", row["Modificación"])</td>
+                                    <td class="text-end @(mod < 0 ? "text-danger" : "text-success")">
+                                        @mod
+                                    </td>
                                     <td class="text-end fw-bold">@row["StockResultante"]</td>
                                 </tr>
                             }

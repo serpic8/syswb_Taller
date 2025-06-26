@@ -36,6 +36,15 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseStatusCodePages(context =>
+{
+    if (context.HttpContext.Response.StatusCode == 403)
+    {
+        context.HttpContext.Response.Redirect("/Account/AccessDenied");
+    }
+    return Task.CompletedTask;
+});
+
 app.UseRouting();
 
 app.UseAuthentication();

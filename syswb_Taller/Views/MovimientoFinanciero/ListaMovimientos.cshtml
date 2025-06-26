@@ -1,16 +1,20 @@
-﻿@{
-    ViewBag.Title = "Lista de Movimientos Financieros";
-    var movimientos = ViewBag.Movimientos as List<dynamic>;
-    int? anio = ViewBag.Anio as int?;
-    int? mes = ViewBag.Mes as int?;
-    int? dia = ViewBag.Dia as int?;
-    string tipoMovimiento = ViewBag.TipoMovimiento as string ?? "";
-    int pageNumber = ViewBag.PageNumber ?? 1;
-    int totalPages = ViewBag.TotalPages ?? 1;
+﻿@model System.Data.DataTable
 
-    string anioStr = anio?.ToString() ?? "";
-    string mesStr = mes?.ToString() ?? "";
-    string diaStr = dia?.ToString() ?? "";
+@{
+    ViewBag.Title = "Lista de Movimientos Financieros";
+    var movimientos   = ViewBag.Movimientos   as List<dynamic>;
+    int?  anio         = ViewBag.Anio         as int?;
+    int?  mes          = ViewBag.Mes          as int?;
+    int?  dia          = ViewBag.Dia          as int?;
+    string tipoMovimiento = ViewBag.TipoMovimiento as string ?? "";
+    int   pageNumber   = ViewBag.PageNumber   ?? 1;
+    int   totalPages   = ViewBag.TotalPages   ?? 1;
+
+    string anioStr    = anio?.ToString() ?? "";
+    string mesStr     = mes?.ToString() ?? "";
+    string diaStr     = dia?.ToString() ?? "";
+    string tipoStr    = tipoMovimiento;
+    string qsParams   = $"&anio={anioStr}&mes={mesStr}&dia={diaStr}&tipoMovimiento={tipoStr}";
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
@@ -25,13 +29,11 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
     }
-
     .table-card {
         border-radius: .5rem;
         overflow: hidden;
         box-shadow: 0 2px 12px rgba(0,0,0,0.05);
     }
-
     .table-card .card-header {
         background: #0097cc;
         color: #fff;
@@ -39,103 +41,110 @@
     }
 </style>
 
+<div class="d-flex justify-content-end mb-3">
+    <a asp-controller="Menu" asp-action="Menu"
+       class="btn btn-outline-primary btn-lg shadow-sm d-flex align-items-center gap-2">
+        <i class="bi bi-house-door-fill fs-5"></i>
+        <span>Menú Principal</span>
+    </a>
+</div>
+
 <h2 class="mb-4"><i class="bi bi-bank2 me-2"></i>Movimientos Financieros</h2>
 
 <div class="filter-bar row align-items-center">
     <div class="col-md-6">
         <div class="btn-group" role="group">
-            <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-secondary">
+            <a asp-controller="MovimientoFinanciero" asp-action="Resumen"
+               class="btn btn-outline-secondary">
                 <i class="bi bi-speedometer2 me-1"></i> Resumen
             </a>
-            <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary">
+            <a asp-controller="Empleado" asp-action="Lista"
+               class="btn btn-outline-secondary">
                 <i class="bi bi-people-fill me-1"></i> Trabajadores
             </a>
-            <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary">
+            <a asp-controller="Proveedor" asp-action="Lista"
+               class="btn btn-outline-secondary">
                 <i class="bi bi-truck-flatbed me-1"></i> Proveedores
             </a>
-            <a href="@Url.Action("ListaMovimientos", "MovimientoFinanciero")" class="btn btn-primary">
+            <a asp-controller="MovimientoFinanciero" asp-action="ListaMovimientos"
+               class="btn btn-primary">
                 <i class="bi bi-cash-stack me-1"></i> Finanzas
             </a>
-            <a href="@Url.Action("Lista", "CajaDiaria")" class="btn btn-outline-secondary">
+            <a asp-controller="CajaDiaria" asp-action="Lista"
+               class="btn btn-outline-secondary">
                 <i class="bi bi-box-seam me-1"></i> Caja Diaria
             </a>
         </div>
     </div>
 
-   <form method="get"
-      class="col-md-6 d-flex justify-content-end align-items-end"
-      id="filtroForm">
+    <form asp-controller="MovimientoFinanciero"
+          asp-action="ListaMovimientos"
+          method="get"
+          class="col-md-6 d-flex justify-content-end align-items-end"
+          id="filtroForm">
 
-    <div class="me-3">
-        <label for="anio" class="form-label mb-1">
-            <i class="bi bi-calendar3 me-1"></i>Año
-        </label>
-        <input type="number"
-               class="form-control form-control-sm"
-               name="anio" id="anio"
-               value="@anioStr"
-               min="2000" max="@DateTime.Now.Year"
-               placeholder="Ej: 2025" />
-    </div>
+        <div class="me-3">
+            <label for="anio" class="form-label mb-1">
+                <i class="bi bi-calendar3 me-1"></i>Año
+            </label>
+            <input type="number"
+                   class="form-control form-control-sm"
+                   name="anio" id="anio"
+                   value="@anioStr"
+                   min="2000" max="@DateTime.Now.Year"
+                   placeholder="Ej: 2025" />
+        </div>
 
-    <div class="me-3">
-        <label for="mes" class="form-label mb-1">
-            <i class="bi bi-calendar2-month me-1"></i>Mes
-        </label>
-        <select class="form-select form-select-sm"
-                name="mes" id="mes">
-            <option value="">-- Todos --</option>
-            @for (int i = 1; i <= 12; i++)
-            {
-                <!option value="@i" @(mes == i ? "selected" : "")>
-                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
-                </!option>
-            }
-        </select>
-    </div>
+        <div class="me-3">
+            <label for="mes" class="form-label mb-1">
+                <i class="bi bi-calendar2-month me-1"></i>Mes
+            </label>
+            <select class="form-select form-select-sm"
+                    name="mes" id="mes">
+                <option value="">-- Todos --</option>
+                @for (int i = 1; i <= 12; i++)
+                {
+                    <!option value="@i" @(mes == i ? "selected" : "")>
+                        @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                    </!option>
+                }
+            </select>
+        </div>
 
-    <div class="me-3">
-        <label for="dia" class="form-label mb-1">
-            <i class="bi bi-calendar2-day me-1"></i>Día
-        </label>
-        <select class="form-select form-select-sm"
-                name="dia" id="dia"
-                @(anio == null || mes == null ? "disabled" : "")>
-            <option value="">-- Todos --</option>
-            @for (int d = 1; d <= DateTime.DaysInMonth(anio ?? DateTime.Now.Year, mes ?? 1); d++)
-            {
-                <!option value="@d" @(dia == d ? "selected" : "")>@d</!option>
-            }
-        </select>
-    </div>
+        <div class="me-3">
+            <label for="dia" class="form-label mb-1">
+                <i class="bi bi-calendar2-day me-1"></i>Día
+            </label>
+            <select class="form-select form-select-sm"
+                    name="dia" id="dia"
+                    @(anio == null || mes == null ? "disabled" : "")>
+                <option value="">-- Todos --</option>
+                @for (int d = 1; d <= DateTime.DaysInMonth(anio ?? DateTime.Now.Year, mes ?? 1); d++)
+                {
+                    <!option value="@d" @(dia == d ? "selected" : "")>@d</!option>
+                }
+            </select>
+        </div>
 
-    <div class="me-3">
-        <label for="tipoMovimiento" class="form-label mb-1">
-            <i class="bi bi-sliders me-1"></i>Tipo
-        </label>
-        <input type="text"
-               class="form-control form-control-sm"
-               name="tipoMovimiento"
-               id="tipoMovimiento"
-               value="@tipoMovimiento"
-               placeholder="Ej: Ingreso, Egreso..." />
-    </div>
+        <div class="me-3">
+            <label for="tipoMovimiento" class="form-label mb-1">
+                <i class="bi bi-sliders me-1"></i>Tipo
+            </label>
+            <input type="text"
+                   class="form-control form-control-sm"
+                   name="tipoMovimiento"
+                   id="tipoMovimiento"
+                   value="@tipoStr"
+                   placeholder="Ej: Ingreso, Egreso..." />
+        </div>
 
-    <button type="submit"
-            class="btn btn-sm btn-primary align-self-end">
-        <i class="bi bi-funnel-fill me-1"></i>Filtrar
-    </button>
-</form>
-
-
-
+        <button type="submit"
+                class="btn btn-sm btn-primary align-self-end">
+            <i class="bi bi-funnel-fill me-1"></i>Filtrar
+        </button>
+    </form>
 </div>
 
-
-
-<!-- Filtros -->
-
-<!-- Tabla -->
 <div class="table-card">
     <div class="card-header">
         <i class="bi bi-cash-coin me-2"></i> Lista de Movimientos
@@ -182,25 +191,24 @@
     </div>
 </div>
 
-<!-- Paginación -->
-@{
-    string queryString = $"&anio={anioStr}&mes={mesStr}&dia={diaStr}&tipoMovimiento={tipoMovimiento}";
-}
-<nav aria-label="Paginador">
-    <ul class="pagination justify-content-center mt-4">
+<nav aria-label="Paginador" class="mt-4">
+    <ul class="pagination justify-content-center">
         <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-            <a class="page-link" href="?pageNumber=@(pageNumber - 1)@queryString">Anterior</a>
+            <a class="page-link"
+               href="?pageNumber=@(pageNumber - 1)@qsParams">Anterior</a>
         </li>
 
         @for (int i = 1; i <= totalPages; i++)
         {
             <li class="page-item @(i == pageNumber ? "active" : "")">
-                <a class="page-link" href="?pageNumber=@i@queryString">@i</a>
+                <a class="page-link"
+                   href="?pageNumber=@i@qsParams">@i</a>
             </li>
         }
 
         <li class="page-item @(pageNumber == totalPages ? "disabled" : "")">
-            <a class="page-link" href="?pageNumber=@(pageNumber + 1)@queryString">Siguiente</a>
+            <a class="page-link"
+               href="?pageNumber=@(pageNumber + 1)@qsParams">Siguiente</a>
         </li>
     </ul>
 </nav>

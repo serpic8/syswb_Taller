@@ -88,70 +88,75 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
+        [HttpGet]
         [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> ListaMovimientos(
-         int? anio,
-         int? mes,
-         int? dia,
-         string tipoMovimiento,
-         int pageNumber = 1,
-         int pageSize = 20) // ← Mostrará 20 por página
+            int? anio,
+            int? mes,
+            int? dia,
+            string tipoMovimiento,
+            int pageNumber = 1,
+            int pageSize = 20)
         {
-            // 1) Abrir conexión manualmente
-            var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "dbo.Get_MovimientosFinancieros";
-            cmd.CommandType = CommandType.StoredProcedure;
-
-            // 2) Parámetros del SP
-            cmd.Parameters.Add(new SqlParameter("@Anio", anio ?? (object)DBNull.Value));
-            cmd.Parameters.Add(new SqlParameter("@Mes", mes ?? (object)DBNull.Value));
-            cmd.Parameters.Add(new SqlParameter("@Dia", dia ?? (object)DBNull.Value));
-            cmd.Parameters.Add(new SqlParameter("@TipoMovimiento", string.IsNullOrEmpty(tipoMovimiento) ? (object)DBNull.Value : tipoMovimiento));
-            cmd.Parameters.Add(new SqlParameter("@PageNumber", pageNumber));
-            cmd.Parameters.Add(new SqlParameter("@PageSize", pageSize));
-
+            // Lista para almacenar las filas del primer result set
             var movimientos = new List<dynamic>();
 
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            // Primer result set: movimientos paginados
-            while (await reader.ReadAsync())
+            // 1) Abrir conexión
+            using (var conn = _bdTallerContext.Database.GetDbConnection())
             {
-                movimientos.Add(new
+                await conn.OpenAsync();
+
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "dbo.Get_MovimientosFinancieros";
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                // 2) Parámetros de filtro y paginación
+                cmd.Parameters.Add(new SqlParameter("@Anio", anio ?? (object)DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@Mes", mes ?? (object)DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@Dia", dia ?? (object)DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@TipoMovimiento",
+                    string.IsNullOrWhiteSpace(tipoMovimiento) ? (object)DBNull.Value : tipoMovimiento));
+                cmd.Parameters.Add(new SqlParameter("@PageNumber", pageNumber));
+                cmd.Parameters.Add(new SqlParameter("@PageSize", pageSize));
+
+                // 3) Ejecución y lectura del primer result set: movimientos paginados
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
                 {
-                    IdMovimiento = reader.GetInt32(0),
-                    MovFecha = reader.GetDateTime(1),
-                    FechaCorta = reader.GetString(2),
-                    Hora = reader.GetString(3),
-                    TipoMovimiento = reader.GetString(4),
-                    Responsable = reader.GetString(5),
-                    MetodoPago = reader.IsDBNull(6) ? "N/A" : reader.GetString(6),
-                    Monto = reader.GetDouble(7)
-                });
+                    movimientos.Add(new
+                    {
+                        IdMovimiento = reader.GetInt32(0),
+                        MovFecha = reader.GetDateTime(1),
+                        FechaCorta = reader.GetString(2),
+                        Hora = reader.GetString(3),
+                        TipoMovimiento = reader.GetString(4),
+                        Responsable = reader.GetString(5),
+                        MetodoPago = reader.IsDBNull(6) ? "N/A" : reader.GetString(6),
+                        Monto = reader.GetDouble(7) 
+                    });
+                }
+
+                // 4) Leer el segundo result set: total de registros
+                int totalRegistros = 0;
+                if (await reader.NextResultAsync() && await reader.ReadAsync())
+                {
+                    totalRegistros = reader.GetInt32(0);
+                }
+                await conn.CloseAsync();
+
+                // 5) Calcular total de páginas
+                int totalPages = (int)Math.Ceiling((double)totalRegistros / pageSize);
+
+                // 6) Pasar datos a la vista vía ViewBag
+                ViewBag.Movimientos = movimientos;
+                ViewBag.Anio = anio;
+                ViewBag.Mes = mes;
+                ViewBag.Dia = dia;
+                ViewBag.TipoMovimiento = tipoMovimiento;
+                ViewBag.PageNumber = pageNumber;
+                ViewBag.PageSize = pageSize;
+                ViewBag.TotalPages = totalPages;
             }
-
-            // Segundo result set: total de registros
-            int totalRegistros = 0;
-            int totalPages = 1;
-
-            if (await reader.NextResultAsync() && await reader.ReadAsync())
-            {
-                totalRegistros = reader.GetInt32(0);
-                totalPages = (int)Math.Ceiling((double)totalRegistros / pageSize);
-            }
-
-            // 3) Pasar datos a la Vista
-            ViewBag.Movimientos = movimientos;
-            ViewBag.Anio = anio;
-            ViewBag.Mes = mes;
-            ViewBag.Dia = dia;
-            ViewBag.TipoMovimiento = tipoMovimiento;
-            ViewBag.PageNumber = pageNumber;
-            ViewBag.PageSize = pageSize;
-            ViewBag.TotalPages = totalPages;
 
             return View();
         }

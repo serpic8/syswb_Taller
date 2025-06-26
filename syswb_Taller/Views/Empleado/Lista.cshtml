@@ -46,6 +46,15 @@
         }
 </style>
 
+<div class="d-flex justify-content-end mb-3">
+    <a asp-controller="Menu" asp-action="Menu"
+       class="btn btn-outline-primary btn-lg shadow-sm d-flex align-items-center gap-2">
+        <i class="bi bi-house-door-fill fs-5"></i>
+        <span>Menú Principal</span>
+    </a>
+</div>
+
+
 <h2 class="mb-4"><i class="bi bi-people-fill me-2"></i>Empleados</h2>
 
 <div class="filter-bar row align-items-center">
@@ -54,7 +63,7 @@
             <a href="@Url.Action("Resumen", "MovimientoFinanciero")" class="btn btn-outline-secondary">
                 <i class="bi bi-speedometer2 me-1"></i> Resumen
             </a>
-            <a href="@Url.Action("Index", "Trabajadores")" class="btn btn-outline-secondary active">
+            <a href="@Url.Action("Lista", "Empleados")" class="btn btn-outline-secondary active">
                 <i class="bi bi-people-fill me-1"></i> Empleados
             </a>
             <a href="@Url.Action("Lista", "Proveedor")" class="btn btn-outline-secondary">

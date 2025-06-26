@@ -56,7 +56,7 @@
 
             </div>
 
-            <form asp-action="IncrementarStock" method="post" novalidate>
+            + <form id="incrementForm" asp-action="IncrementarStock" method="post" novalidate>
                 @Html.AntiForgeryToken()
                 <input name="IdProducto" type="hidden" value="@Model.IdProducto" />
 
@@ -105,36 +105,38 @@
             <div class="list-group">
                 @if (ultimasCompras.Any(c => c.CprActivo))
                 {
-                    foreach (var compra in ultimasCompras.Where(c => c.CprActivo))
+                    @foreach (var compra in ultimasCompras.Where(c => c.CprActivo))
                     {
-                        <a class="list-group-item list-group-item-action delete-item" data-id="@compra.IdCompra" style="cursor:pointer;">
-                            <div class="d-flex w-100 justify-content-between">
+                        <a class="list-group-item list-group-item-action delete-item d-flex justify-content-between align-items-start"
+                           data-id="@compra.IdCompra"
+                           style="cursor:pointer;">
+                            <div>
                                 <h5 class="mb-1">Compra #@compra.IdCompra</h5>
-                                <small>@compra.CompFecha</small>
+                                <p class="mb-1">Cantidad: @compra.CproCantidad</p>
+                                <small>Proveedor: @(compra.IdProveedor != null ? compra.ProveedorNombre : "N/A")</small>
                             </div>
-                            <p class="mb-1">Cantidad: @compra.CproCantidad</p>
-                            <small>Proveedor: @(compra.IdProveedor != null ? compra.ProveedorNombre : "N/A")</small>
+                            <small class="text-muted">@compra.CompFecha</small>
                         </a>
+
+                        @* Un único formulario por compra *@
+                        <form id="delForm_@compra.IdCompra"
+                              asp-controller="Producto"
+                              asp-action="Eliminar"
+                              method="post"
+                              style="display:none">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@compra.IdCompra" />
+                        </form>
                     }
                 }
                 else
                 {
-                    <div class="list-group-item">No hay compras recientes.</div>
+                    <div class="list-group-item text-center text-muted">
+                        <i class="bi bi-exclamation-circle me-1"></i>No hay compras recientes.
+                    </div>
                 }
             </div>
 
-            @* Formularios ocultos para eliminación *@
-            @foreach (var compra in ultimasCompras)
-            {
-                <form id="delForm_@compra.IdCompra"
-                      asp-controller="Producto"
-                      asp-action="Eliminar"
-                      method="post"
-                      style="display:none">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@compra.IdCompra" />
-                </form>
-            }
         </div>
     </div>
 </div>
@@ -144,6 +146,7 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            // Inicializa Select2
             $('.select2').select2({
                 tags: false,
                 width: '100%',
@@ -152,10 +155,14 @@
                 }
             });
 
-            const form = document.querySelector("form[asp-action='IncrementarStock']");
+            // Referencias a DOM
+            const form = document.getElementById("incrementForm");
             const cantidadInput = document.getElementById("Cantidad");
             const cantidadError = document.getElementById("cantidadError");
+            const decrementBtn = document.getElementById("decrementBtn");
+            const incrementBtn = document.getElementById("incrementBtn");
 
+            // Valida la cantidad >= 1
             function validarCantidad() {
                 const val = cantidadInput.value.trim();
                 const num = parseInt(val, 10);
@@ -169,21 +176,23 @@
                 return true;
             }
 
-            document.getElementById('decrementBtn').addEventListener('click', function () {
+            // Botones + / –
+            decrementBtn.addEventListener('click', function () {
                 let qty = parseInt(cantidadInput.value) || 1;
                 if (qty > 1) cantidadInput.value = qty - 1;
                 validarCantidad();
             });
-
-            document.getElementById('incrementBtn').addEventListener('click', function () {
+            incrementBtn.addEventListener('click', function () {
                 let qty = parseInt(cantidadInput.value) || 1;
                 cantidadInput.value = qty + 1;
                 validarCantidad();
             });
 
+            // Validación en input y blur
             cantidadInput.addEventListener('input', validarCantidad);
             cantidadInput.addEventListener('blur', validarCantidad);
 
+            // Validación al enviar
             form.addEventListener("submit", function (e) {
                 if (!validarCantidad() || !form.checkValidity()) {
                     e.preventDefault();
@@ -192,11 +201,12 @@
                 form.classList.add("was-validated");
             });
 
-            // Doble click para eliminar compra
+            // Doble-click para devolver compra
             document.querySelectorAll('.delete-item').forEach(function (item) {
                 item.addEventListener('dblclick', function () {
-                    var id = item.getAttribute('data-id');
-                    if (confirm('¿Está Seguro de devolver?')) {
+                    const id = this.dataset.id;
+                    if (confirm('¿Está seguro de devolver esta compra?')) {
+                        console.log(`Enviando formulario del ID ${id}`);
                         document.getElementById('delForm_' + id).submit();
                     }
                 });

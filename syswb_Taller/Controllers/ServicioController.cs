@@ -64,9 +64,6 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-        // -------------------------------------------
-        // POST: Insertar Servicio
-        // -------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
@@ -89,9 +86,7 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Lista");
         }
 
-        // -------------------------------------------
-        // GET: Editar Servicio
-        // -------------------------------------------
+
         [HttpGet]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int id)
@@ -127,9 +122,6 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-        // -------------------------------------------
-        // POST: Actualizar Servicio
-        // -------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
@@ -153,9 +145,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Lista");
         }
 
-        // -------------------------------------------
-        // POST: Modificar Estado (Activo/Inactivo)
-        // -------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Supervisor")]

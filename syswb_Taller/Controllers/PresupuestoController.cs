@@ -80,7 +80,6 @@ namespace syswb_Taller.Controllers
             int idCliente;
             int idVehiculo;
 
-            // INSERTAR CLIENTE CON OUTPUT
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tran;
@@ -103,7 +102,6 @@ namespace syswb_Taller.Controllers
                 idCliente = (int)outParamCliente.Value;
             }
 
-            // INSERTAR VEHÍCULO CON OUTPUT
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tran;
@@ -140,15 +138,12 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarPresupuesto(int idPresupuesto, string preFalla)
         {
-            // 1) ejecuta el UPDATE
             var presupuesto = await _bd.Presupuestos.FindAsync(idPresupuesto);
             if (presupuesto == null) return NotFound();
 
             presupuesto.PreFalla = preFalla;
-            // (si quieres permitir cambiar otros campos, inclúyelos aquí)
             await _bd.SaveChangesAsync();
 
-            // 2) Redirige al listado
             return RedirectToAction("Lista");
         }
 
@@ -157,7 +152,6 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> EditarPresupuesto(int id)
         {
-            // Obtener presupuesto
             var presupuesto = await _bd.Presupuestos.FindAsync(id);
             if (presupuesto == null) return NotFound();
 
@@ -172,7 +166,6 @@ namespace syswb_Taller.Controllers
             ViewBag.ClienteNombre = cliente?.IdPersonaNavigation.PNombre + " " + cliente?.IdPersonaNavigation.PApellido;
             ViewBag.Matricula = vehiculo?.VhMatricula;
 
-            // Catálogos
             ViewBag.Packs = await _bd.PackReparaciones
             .Where(p => p.PckActivo && p.PckPrecio != null)
             .ToListAsync();
@@ -180,7 +173,6 @@ namespace syswb_Taller.Controllers
             ViewBag.Productos = await _bd.ProductoRepuestos.Where(p => p.PrActivo).ToListAsync();
             ViewBag.Servicios = await _bd.Servicios.Where(s => s.SerActivo).ToListAsync();
 
-            // Detalles (packs, productos, servicios)
             var detalles = new List<dynamic>();
 
             var dPacks = await _bd.PresupuestoDetallePacks
@@ -301,7 +293,6 @@ namespace syswb_Taller.Controllers
             ViewBag.ClienteID = clienteID;
             ViewBag.IdVehiculo = idVehiculo;
 
-            // Obtienes nombre de cliente y matrícula OK...
             var cliente = await _bd.Clientes
                 .Include(c => c.IdPersonaNavigation)
                 .FirstOrDefaultAsync(c => c.IdCliente == clienteID);
@@ -311,7 +302,6 @@ namespace syswb_Taller.Controllers
             var veh = await _bd.Vehiculos.FindAsync(idVehiculo);
             ViewBag.Matricula = veh?.VhMatricula;
 
-            // ——— Aquí faltaba poblar los catálogos ———
             ViewBag.Packs = await _bd.PackReparaciones
                                          .Where(p => p.PckActivo)
                                          .ToListAsync();
@@ -322,7 +312,6 @@ namespace syswb_Taller.Controllers
                                          .Where(s => s.SerActivo)
                                          .ToListAsync();
 
-            // en creación no hay detalles todavía
             ViewBag.Detalles = new List<dynamic>();
 
             return View("Crear");
@@ -371,7 +360,6 @@ namespace syswb_Taller.Controllers
         public PresupuestoController(BdTallerContext bd) => _bd = bd;
 
 
-        // INSERCIÓN DE DETALLES
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -424,7 +412,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
         }
 
-        // ACTUALIZACIÓN DE DETALLES
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -440,7 +427,6 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@ppCantidad", (object)ppCantidad ?? DBNull.Value));
             await cmd.ExecuteNonQueryAsync();
 
-            // Recupera idPresupuesto para redirigir
             int idPresupuesto = await _bd.PresupuestoDetallePacks
                 .Where(d => d.IdDetalle == idDetalle)
                 .Select(d => d.IdPresupuesto)
@@ -493,20 +479,17 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
         }
 
-        // Dentro de PresupuestoController:
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> EliminarPack(int idDetalle)
         {
-            // 1) Obtén el idPresupuesto antes de borrar
             int idPresupuesto = await _bd.PresupuestoDetallePacks
                 .Where(d => d.IdDetalle == idDetalle)
                 .Select(d => d.IdPresupuesto)
                 .FirstAsync();
 
-            // 2) Ejecuta el SP de borrado
             using var conn = _bd.Database.GetDbConnection();
             await conn.OpenAsync();
             using var cmd = conn.CreateCommand();
@@ -515,7 +498,6 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
             await cmd.ExecuteNonQueryAsync();
 
-            // 3) Redirige de vuelta al editar presupuesto
             return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
         }
 
@@ -567,7 +549,6 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> GenerarOrdenDesdePresupuesto(int idPresupuesto)
         {
-            // Validar si ya existe una orden para este presupuesto
             if (_bd.Ordenes.Any(o => o.IdPresupuesto == idPresupuesto))
             {
                 TempData["Error"] = "Este presupuesto ya tiene una orden generada.";
@@ -581,18 +562,15 @@ namespace syswb_Taller.Controllers
                 return RedirectToAction("Lista");
             }
 
-            // Aquí puedes validar que haya vehículo asignado si quieres:
             if (presupuesto.IdVehiculo == 0)
             {
                 TempData["Error"] = "No puede generar orden sin un vehículo asignado.";
                 return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
             }
 
-            // Aprobar presupuesto
             presupuesto.PreEstado = true;
             await _bd.SaveChangesAsync();
 
-            // Ejecutar SP para crear orden desde presupuesto
             int idOrden = 0;
             using (var conn = _bd.Database.GetDbConnection())
             {

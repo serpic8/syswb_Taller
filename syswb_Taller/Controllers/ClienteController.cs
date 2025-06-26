@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -17,6 +18,7 @@ namespace syswb_Taller.Controllers
         }
 
         // GET: /Cliente/Lista
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [HttpGet("Lista")]
         public async Task<IActionResult> Lista(string nombre = null, bool? activo = null)
         {
@@ -49,7 +51,7 @@ namespace syswb_Taller.Controllers
             return View(clientes);
         }
 
-        // GET: /Cliente/Crear
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [HttpGet("Crear")]
         public IActionResult Crear(string redirigirA = null)
         {
@@ -58,7 +60,7 @@ namespace syswb_Taller.Controllers
         }
 
 
-        // POST: /Cliente/Crear
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [HttpPost("Crear")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(
@@ -100,7 +102,7 @@ namespace syswb_Taller.Controllers
         }
 
 
-        // GET: /Cliente/Editar/5
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [HttpGet("Editar/{idCliente}")]
         public async Task<IActionResult> Editar(int idCliente)
         {
@@ -193,7 +195,7 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-        // POST: /Cliente/Editar/5
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [HttpPost("Editar/{idCliente}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(
@@ -223,7 +225,7 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Lista");
         }
 
-        // POST: /Cliente/CambiarEstado/5
+        [Authorize(Roles = "Administrador, Supervisor")]
         [HttpPost("CambiarEstado/{idCliente}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CambiarEstado(int idCliente)

@@ -23,7 +23,6 @@ namespace syswb_Taller.Controllers
         #region Lista y Crear
         private async Task<bool> ObtenerActivo(int idProducto)
         {
-            // Creamos una nueva conexión para evitar problemas de MARS
             var connString = _bdTallerContext.Database.GetConnectionString();
             await using var conn2 = new SqlConnection(connString);
             await conn2.OpenAsync();
@@ -73,13 +72,11 @@ namespace syswb_Taller.Controllers
                 }
             }
 
-            // 2) Ahora, para cada producto, preguntamos a la BD su estado real
             foreach (var p in productos)
             {
                 p.PrActivo = await ObtenerActivo(p.IdProducto);
             }
 
-            // 3) Pasamos los filtros al ViewBag
             ViewBag.FiltroNombre = nombre;
             ViewBag.FiltroMarca = marca;
             ViewBag.FiltroCategoria = categoria;
@@ -109,7 +106,6 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-        // POST: Crear Producto
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
@@ -136,7 +132,6 @@ namespace syswb_Taller.Controllers
             }
         }
 
-        // GET: Editar Producto
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(int id)
         {
@@ -165,7 +160,6 @@ namespace syswb_Taller.Controllers
         }
 
 
-        // POST: Editar Producto
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
@@ -204,7 +198,6 @@ namespace syswb_Taller.Controllers
             }
         }
 
-        // POST: Alternar estado activo/inactivo
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Supervisor")]
@@ -220,17 +213,14 @@ namespace syswb_Taller.Controllers
 
 
         #region Stock y Eliminar Stock
-        // Dentro de ProductoController.cs
         [HttpGet]
         [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> IncrementarStock(int id)
         {
-            // 1) Recuperar el producto
             var producto = await _bdTallerContext.ProductoRepuestos
                 .FirstOrDefaultAsync(p => p.IdProducto == id);
             if (producto == null) return NotFound();
 
-            // 2) Cargar proveedores relacionados y activos con precio referencia desde el SP
             var proveedores = new List<dynamic>();
 
             var conn = _bdTallerContext.Database.GetDbConnection();
@@ -258,7 +248,6 @@ namespace syswb_Taller.Controllers
 
             ViewBag.Proveedores = proveedores;
 
-            // 3) Cargar las últimas compras de este producto
             var ultimasCompras = new List<dynamic>();
 
             using (var cmd = conn.CreateCommand())
@@ -296,7 +285,6 @@ namespace syswb_Taller.Controllers
 
             ViewBag.UltimasCompras = ultimasCompras;
 
-            // 4) Devolver la vista con el modelo ProductoRepuesto
             return View(producto);
         }
 
@@ -304,7 +292,6 @@ namespace syswb_Taller.Controllers
 
 
 
-        // POST: Ejecutar SP Inc_StockProducto
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Supervisor")]
@@ -324,12 +311,10 @@ namespace syswb_Taller.Controllers
 
 
 
-        //Eliminar
         [HttpGet]
         [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> Listar()
         {
-            // Suponiendo que tienes un DbSet<Compra_Proveedores> en tu context
             var compras = await _bdTallerContext.CompraProveedores
                 .Where(c => c.CprActivo)
                 .ToListAsync();
@@ -337,9 +322,6 @@ namespace syswb_Taller.Controllers
             return View(compras);
         }
 
-        // GET: CompraProveedor/Eliminar/5
-        // Muestra confirmación antes de borrar
-        // GET: Producto/Eliminar/5
         [HttpGet]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Eliminar(int id)
@@ -351,30 +333,76 @@ namespace syswb_Taller.Controllers
             return View(compra);
         }
 
-        // POST: Producto/Eliminar/5
         [HttpPost, ActionName("Eliminar")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> EliminarConfirmado(int id)
         {
+            // 1) Verificar que la compra exista y esté activa
+            var compraHeader = await _bdTallerContext.CompraProveedores
+                .FirstOrDefaultAsync(c => c.IdCompra == id);
+
+            if (compraHeader == null)
+            {
+                TempData["ErrorMessage"] = $"La compra {id} no existe.";
+                return RedirectToAction(nameof(Lista));
+            }
+            if (!compraHeader.CprActivo)
+            {
+                TempData["ErrorMessage"] = $"La compra {id} ya fue devuelta.";
+                return RedirectToAction(nameof(Lista));
+            }
+
+            // 2) Recoger los detalles: producto y cantidad
+            var detalles = await _bdTallerContext.CompraProductos
+                .Where(cp => cp.IdCompra == id && cp.CproActivo)
+                .Select(cp => new { cp.IdProducto, cp.CproCantidad })
+                .ToListAsync();
+
+            // 3) Verificar que haya suficiente stock para restar cada detalle
+            var insuficientes = new List<int>();
+            foreach (var d in detalles)
+            {
+                var prod = await _bdTallerContext.ProductoRepuestos
+                    .FirstOrDefaultAsync(p => p.IdProducto == d.IdProducto);
+                if (prod == null || prod.PrStock < d.CproCantidad)
+                {
+                    insuficientes.Add(d.IdProducto);
+                }
+            }
+            if (insuficientes.Any())
+            {
+                TempData["ErrorMessage"] = "No es posible devolver la compra porque " +
+                    "no hay suficiente stock para los productos: " +
+                    string.Join(", ", insuficientes);
+                return RedirectToAction(nameof(IncrementarStock), new { id = detalles.First().IdProducto });
+            }
+
+            // 4) Todo OK: llamamos al SP
             try
             {
                 await _bdTallerContext.Database.ExecuteSqlRawAsync(
-                    "EXEC Del_CompraProveedor @idCompra",
+                    "EXEC Devolver_CompraProveedor @idCompra",
                     new SqlParameter("@idCompra", id)
                 );
 
-                TempData["SuccessMessage"] = $"Compra {id} anulada correctamente.";
+                TempData["SuccessMessage"] = $"Compra {id} devuelta correctamente.";
             }
             catch (SqlException ex)
             {
-                TempData["ErrorMessage"] = ex.Message;
+                TempData["ErrorMessage"] = $"Error al devolver la compra: {ex.Message}";
+                return RedirectToAction(nameof(Lista));
             }
-            return RedirectToAction("Lista"); // Esto vuelve al listado de compras
+
+            // 5) Redirigir al stock del primer producto afectado
+            return RedirectToAction(nameof(IncrementarStock), new { id = detalles.First().IdProducto });
         }
+
+
+
         #endregion
-        
-        
+
+
         [HttpGet]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> ProveedoresProducto(int idProducto)
@@ -440,16 +468,14 @@ namespace syswb_Taller.Controllers
 
             var dt = new DataTable();
             using (var reader = await cmd.ExecuteReaderAsync())
-            {
                 dt.Load(reader);
-            }
 
             await conn.CloseAsync();
 
-            ViewBag.IdProducto = idProducto; // para usar en links u otras vistas
-
-            return View(dt);
+            ViewBag.IdProducto = idProducto;
+            return View(dt);    // pasamos el DataTable directamente
         }
+
 
 
 
@@ -459,7 +485,6 @@ namespace syswb_Taller.Controllers
 
     }
 
-    // ViewModel para la vista de incremento de stock
     public class IncrementarStockViewModel
     {
         public int IdProducto { get; set; }

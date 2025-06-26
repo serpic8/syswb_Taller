@@ -17,7 +17,7 @@ namespace syswb_Taller.Controllers
 
         // 1) LISTAR ÓRDENES
         [HttpGet]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> Lista(DateTime? fechaDesde = null, DateTime? fechaHasta = null, int? clienteID = null, string estado = null)
         {
             var list = new List<dynamic>();
@@ -56,7 +56,6 @@ namespace syswb_Taller.Controllers
         }
 
 
-        // 2) CREAR CLIENTE + VEHÍCULO (igual que en presupuesto)
         [HttpGet]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public IActionResult CrearClienteVehiculo()
@@ -75,7 +74,6 @@ namespace syswb_Taller.Controllers
             await conn.OpenAsync();
             using var tran = conn.BeginTransaction();
 
-            // Ins_Cliente
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tran;
@@ -90,7 +88,6 @@ namespace syswb_Taller.Controllers
             }
             int idCliente = Convert.ToInt32(await new SqlCommand("SELECT SCOPE_IDENTITY()", (SqlConnection)conn, (SqlTransaction)tran).ExecuteScalarAsync());
 
-            // Ins_Vehiculo
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tran;
@@ -111,7 +108,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Crear", new { clienteID = idCliente, vehiculoID = idVehiculo });
         }
 
-        // 3) SELECCIONAR CLIENTE (si ya existe)
         [HttpGet]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> SeleccionarClienteOrden(string nombre = null, bool? activo = null)
@@ -119,7 +115,6 @@ namespace syswb_Taller.Controllers
             var clientes = new List<dynamic>();
             using var conn = _bd.Database.GetDbConnection();
             await conn.OpenAsync();
-            // SP Get_Clientes
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = "Get_Clientes";
@@ -138,15 +133,13 @@ namespace syswb_Taller.Controllers
                     clientes.Add(c);
                 }
             }
-            // cargar vehículos EF
-            // Después de llenar tu lista de clientes dinámicos:
             foreach (var c in clientes)
             {
                 int clientId = (int)c.Id;
 
                 var vehs = await _bd.Vehiculos
                     .Where(v => v.IdCliente == clientId
-                                && v.VhActivo == true)    // <-- compara nullable con true
+                                && v.VhActivo == true)    
                     .Select(v => new { v.IdVehiculo, v.VhMatricula, v.VhMarca })
                     .ToListAsync();
 
@@ -159,7 +152,6 @@ namespace syswb_Taller.Controllers
             return View(clientes);
         }
 
-        // 4) CREAR ORDEN (paso final)
         [HttpGet]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Crear(int clienteID, int vehiculoID, int? presupuestoID = null)
@@ -168,11 +160,9 @@ namespace syswb_Taller.Controllers
             ViewBag.VehiculoID = vehiculoID;
             ViewBag.PresupuestoID = presupuestoID;
 
-            // opcionales: catálogos
             ViewBag.Estados = new[] { "Pendiente", "En Proceso", "Entregado" };
             ViewBag.Tipos = new[] { "Mantenimiento", "Reparación", "Inspección" };
 
-            // Cargar mecánicos activos
             ViewBag.Mecanicos = await _bd.Empleados
                 .Where(e => e.EmpActivo && e.IdRolNavigation.RTipo == "Mecánico")
                 .Include(e => e.IdPersonaNavigation)
@@ -221,15 +211,13 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Lista");
         }
 
-        // 5) EDITAR ORDEN y DETALLES (packs/productos/servicios)
         [HttpGet]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> Editar(int id)
         {
             var orden = await _bd.Ordenes.FindAsync(id);
             if (orden == null) return NotFound();
 
-            // cargar datos de cliente/vehículo como en presupuesto
             var cliente = await _bd.Clientes.Include(c => c.IdPersonaNavigation).FirstAsync(c => c.IdCliente == orden.IdCliente);
             var vehiculo = await _bd.Vehiculos.FindAsync(orden.IdVehiculo);
 
@@ -238,14 +226,12 @@ namespace syswb_Taller.Controllers
             ViewBag.ClienteNombre = cliente.IdPersonaNavigation.PNombre + " " + cliente.IdPersonaNavigation.PApellido;
             ViewBag.Matricula = vehiculo.VhMatricula;
 
-            // catálogos
             ViewBag.Estados = new[] { "Pendiente", "En Proceso", "Entregado" };
             ViewBag.Tipos = new[] { "Mantenimiento", "Reparación", "Inspección" };
             ViewBag.Packs = await _bd.PackReparaciones.Where(p => p.PckActivo).ToListAsync();
             ViewBag.Productos = await _bd.ProductoRepuestos.Where(p => p.PrActivo).ToListAsync();
             ViewBag.Servicios = await _bd.Servicios.Where(s => s.SerActivo).ToListAsync();
 
-            // detalles
             var detalles = new List<dynamic>();
             var dpacks = await _bd.OrdenDetallePacks.Include(d => d.IdPackNavigation).Where(d => d.IdOrden == id).ToListAsync();
             foreach (var d in dpacks)
@@ -259,7 +245,6 @@ namespace syswb_Taller.Controllers
 
             ViewBag.Detalles = detalles;
 
-            // Cargar mecánicos activos
             ViewBag.Mecanicos = await _bd.Empleados
                 .Where(e => e.EmpActivo && e.IdRolNavigation.RTipo == "Mecánico")
                 .Include(e => e.IdPersonaNavigation)
@@ -312,7 +297,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Lista");
         }
 
-        // 6) INSERCIÓN DE DETALLES
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarPack(int idOrden, int idPack, int opCantidad)
@@ -361,7 +345,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
-        // 7) ACTUALIZACIÓN DE DETALLES
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarPack(int idDetalle, int? opCantidad)
@@ -413,7 +396,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
-        // 8) ELIMINAR DETALLES (opcional, si tienes los SP correspondientes)
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Supervisor")]
         public async Task<IActionResult> EliminarPack(int idDetalle)
@@ -494,9 +476,7 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
-        // ────────────────
-        // 10) ACTUALIZACIÓN DE DETALLE DE ENTREGA
-        // ────────────────
+
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> ActualizarEntrega(
@@ -526,7 +506,6 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@informe_tecnico", (object)informe_tecnico ?? DBNull.Value));
             await cmd.ExecuteNonQueryAsync();
 
-            // Recupera el idOrden para redirigir
             var idOrden = await _bd.OrdenDetalleEntregas
                 .Where(d => d.IdEntrega == idEntrega)
                 .Select(d => d.IdOrden)
@@ -541,20 +520,17 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
         public async Task<IActionResult> AgregarEntrega(int idOrden)
         {
-            // 1) Verifica que la orden exista
             var orden = await _bd.Ordenes.FindAsync(idOrden);
             if (orden == null)
             {
                 return NotFound();
             }
 
-            // 2) Prepara un modelo vacío de entrega
             var entrega = new OrdenDetalleEntrega
             {
                 IdOrden = idOrden
             };
 
-            // 3) Carga solo mecánicos activos
             ViewBag.Empleados = await _bd.Empleados
                 .Where(e => e.EmpActivo && e.IdRolNavigation.RTipo == "Mecánico")
                 .Include(e => e.IdPersonaNavigation)
@@ -569,7 +545,6 @@ namespace syswb_Taller.Controllers
             ViewBag.MecanicoAsignado = TempData["MecanicoTemp"];
 
 
-            // 4) Devuelve la vista con el modelo
             return View("EntregaOrden", entrega);
         }
 
@@ -579,22 +554,18 @@ namespace syswb_Taller.Controllers
 
 
 
-        // GET: /Orden/AgregarPagoOrden/5
         [HttpGet]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarPagoOrden(int idOrden)
         {
-            // 1) Prepara el modelo
             var pago = new DetallePagoOrden
             {
                 IdOrden = idOrden,
             };
 
-            // 2) Obtén el cliente para reenviar al ViewBag (si lo necesitas)
             var orden = await _bd.Ordenes.FindAsync(idOrden);
             ViewBag.IdCliente = orden?.IdCliente;
 
-            // 3) Carga la lista de empleados activos, concatenando su persona asociada
             ViewBag.Empleados = await _bd.Empleados
                 .Where(e => e.EmpActivo)
                 .Include(e => e.IdPersonaNavigation)
@@ -638,9 +609,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
-        // ────────────────
-        // 12) ACTUALIZACIÓN DE DETALLE DE PAGO
-        // ────────────────
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarPagoOrden(
@@ -659,7 +627,6 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@observaciones", (object)observaciones ?? DBNull.Value));
             await cmd.ExecuteNonQueryAsync();
 
-            // Recupera el idOrden para redirigir
             var idOrden = await _bd.DetallePagoOrdens
                 .Where(d => d.IdPagoOrden == idPagoOrden)
                 .Select(d => d.IdOrden)

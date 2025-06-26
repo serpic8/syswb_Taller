@@ -280,7 +280,7 @@ namespace syswb_Taller.Controllers
             }
             catch (SqlException ex)
             {
-                if (ex.Message.Contains("ya está asignado al pack"))  // mensaje del SP
+                if (ex.Message.Contains("ya está asignado al pack"))  
                 {
                     TempData["Error"] = "El producto ya está asignado a este pack.";
                     return RedirectToAction("Detalles", new { idPack });
@@ -310,7 +310,7 @@ namespace syswb_Taller.Controllers
             }
             catch (SqlException ex)
             {
-                if (ex.Message.Contains("ya está asignado al pack"))  // mensaje del SP
+                if (ex.Message.Contains("ya está asignado al pack"))  
                 {
                     TempData["Error"] = "El servicio ya está asignado a este pack.";
                     return RedirectToAction("Detalles", new { idPack });
