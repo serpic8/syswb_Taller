@@ -1,73 +1,186 @@
 ﻿@model List<dynamic>
+
 @{
     ViewBag.Title = "Listado de Órdenes";
     var list = Model;
+    string filtroCliente = ViewBag.FiltroCliente as string ?? "";
+    DateTime? fechaDesde = ViewBag.FiltroFechaDesde as DateTime?;
+    DateTime? fechaHasta = ViewBag.FiltroFechaHasta as DateTime?;
+    bool? filtroEstado = ViewBag.FiltroEstado as bool?;
 }
 
-<h2>Listado de Órdenes</h2>
-<p>
-    <a asp-action="CrearClienteVehiculo" asp-controller="Orden" class="btn btn-success">
-        Nueva Orden
-    </a>
-</p>
+@section Header { }
+@section Footer { }
 
-<table class="table table-bordered">
-    <thead class="table-dark">
-        <tr>
-            <th>ID</th>
-            <th>Creación</th>
-            <th>Cliente</th>
-            <th>Vehículo</th>
-            <th>Entrega</th>
-            <th class="text-end">Costo</th>
-            <th>Pagada</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var o in list)
-        {
-            // Determina destino según rol
-            var url = User.IsInRole("Mecanico")
-            ? Url.Action("AgregarEntrega", "Orden", new { id = o.Id })
-            : Url.Action("Editar", "Orden", new { id = o.Id });
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
 
-            <tr style="cursor:pointer;"
-                ondblclick="location.href='@url'">
-                <td>@o.Id</td>
-                <td>@o.Creacion.ToString("g")</td>
-                <td>@o.Cliente</td>
-                <td>@o.Vehiculo</td>
-                <td>@o.Entrega.ToString("d")</td>
-                <td class="text-end">@o.Costo.ToString("C")</td>
-                <td class="text-center">
-                    @if (o.Pagada)
+@section Styles {
+    <style>
+        .header-filter {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-form .form-label {
+            margin-bottom: .25rem;
+        }
+
+        .table-card { 
+            border-radius: .5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+
+        .table-card .card-header {
+            background: #0097cc;
+            color: #fff;
+            font-weight: 600;
+            padding: .75rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-card table tr:hover {
+            background-color: rgba(0,151,204,0.05);
+            cursor: pointer;
+        }
+
+        .table th, .table td {
+            vertical-align: middle;
+        }
+    </style>
+}
+
+<div class="container mt-4">
+<div class="container mt-4">
+
+    <div class="header-filter">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-list-check fs-3 text-primary me-2"></i>
+            <h1 class="h4 fw-bold mb-0">Órdenes de Trabajo</h1>
+        </div>
+    </div>
+
+    <form method="get" asp-action="Lista" class="filter-form mb-4">
+        <div>
+            <label class="form-label d-block"><i class="bi bi-person me-1"></i>Cliente</label>
+            <input name="clienteID" class="form-control form-control-sm" value="@filtroCliente" placeholder="Buscar cliente..." />
+        </div>
+        <div>
+            <label class="form-label d-block"><i class="bi bi-calendar me-1"></i>Desde</label>
+            <input type="date" name="fechaDesde" class="form-control form-control-sm" value="@fechaDesde?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label d-block"><i class="bi bi-calendar2 me-1"></i>Hasta</label>
+            <input type="date" name="fechaHasta" class="form-control form-control-sm" value="@fechaHasta?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label d-block"><i class="bi bi-info-circle me-1"></i>Estado</label>
+            <select name="estado" class="form-select form-select-sm">
+                <option value="">-- Todos --</option>
+                <!option value="true" @(filtroEstado == true ? "selected" : "")>Completadas</!option>
+                <!option value="false" @(filtroEstado == false ? "selected" : "")>Pendientes</!option>
+            </select>
+        </div>
+        <div class="d-flex align-items-end">
+            <button class="btn btn-primary btn-sm">
+                <i class="bi bi-funnel-fill me-1"></i>Filtrar
+            </button>
+        </div>
+    </form>
+
+    <div class="table-card">
+        <div class="card-header">
+            <span><i class="bi bi-list-columns-reverse me-2"></i>Listado de Órdenes</span>
+                <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Orden" class="btn btn-primary">
+                    <i class="bi bi-person-plus me-1"></i> Crear Orden
+                </a>
+
+
+        </div>
+    <di/>
+
+    <div class="table-card">        
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th><i class="bi bi-hash me-1"></i>ID</th>
+                        <th><i class="bi bi-calendar-plus me-1"></i>Creación</th>
+                        <th><i class="bi bi-person me-1"></i>Cliente</th>
+                        <th><i class="bi bi-car-front me-1"></i>Vehículo</th>
+                        <th><i class="bi bi-calendar-check me-1"></i>Entrega</th>
+                        <th class="text-end"><i class="bi bi-currency-dollar me-1"></i>Costo</th>
+                        <th><i class="bi bi-cash-coin me-1"></i>Pagada</th>
+                        <th><i class="bi bi-info-circle me-1"></i>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (list.Any())
                     {
-                        <span class="badge bg-success">Sí</span>
+                        foreach (var o in list)
+                        {
+                            var url = User.IsInRole("Mecanico")
+                                ? Url.Action("AgregarEntrega", "Orden", new { id = o.Id })
+                                : Url.Action("Editar", "Orden", new { id = o.Id });
+
+                            <tr ondblclick="window.location='@url'">
+                                <td>@o.Id</td>
+                                <td>@o.Creacion.ToString("g")</td>
+                                <td>@o.Cliente</td>
+                                <td>@o.Vehiculo</td>
+                                <td>@(o.Entrega?.ToString("d") ?? "")</td>
+                                <td class="text-end">@o.Costo.ToString("C")</td>
+                                <td class="text-center">
+                                    @if (o.Pagada)
+                                    {
+                                        <span class="badge bg-success">Sí</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">No</span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (o.Estado)
+                                    {
+                                        case "Pendiente":
+                                            <span class="text-warning">@o.Estado</span>
+                                            break;
+                                        case "En Proceso":
+                                            <span class="text-primary">@o.Estado</span>
+                                            break;
+                                        case "Entregado":
+                                            <span class="text-success">@o.Estado</span>
+                                            break;
+                                        default:
+                                            @o.Estado
+                                            break;
+                                    }
+                                </td>
+                            </tr>
+                        }
                     }
                     else
                     {
-                        <span class="badge bg-warning text-dark">No</span>
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="bi bi-exclamation-circle me-2"></i>No se encontraron órdenes.
+                            </td>
+                        </tr>
                     }
-                </td>
-                <td>
-                    @switch (o.Estado)
-                    {
-                        case "Pendiente":
-                            <span class="text-warning">@o.Estado</span>
-                            ; break;
-                        case "En Proceso":
-                            <span class="text-primary">@o.Estado</span>
-                            ; break;
-                        case "Entregado":
-                            <span class="text-success">@o.Estado</span>
-                            ; break;
-                        default:
-                            @o.Estado
-                            ; break;
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>

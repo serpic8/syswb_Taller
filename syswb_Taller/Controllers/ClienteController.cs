@@ -6,6 +6,7 @@ using syswb_Taller.Models;
 
 namespace syswb_Taller.Controllers
 {
+    [Route("Cliente")]  // Ruta base para todas las acciones
     public class ClienteController : Controller
     {
         private readonly BdTallerContext _bdTallerContext;
@@ -16,7 +17,7 @@ namespace syswb_Taller.Controllers
         }
 
         // GET: /Cliente/Lista
-        [HttpGet]
+        [HttpGet("Lista")]
         public async Task<IActionResult> Lista(string nombre = null, bool? activo = null)
         {
             var clientes = new List<dynamic>();
@@ -49,23 +50,28 @@ namespace syswb_Taller.Controllers
         }
 
         // GET: /Cliente/Crear
-        [HttpGet]
-        public IActionResult Crear()
+        [HttpGet("Crear")]
+        public IActionResult Crear(string redirigirA = null)
         {
+            ViewBag.Redireccion = redirigirA;
             return View();
         }
 
+
         // POST: /Cliente/Crear
-        [HttpPost]
+        [HttpPost("Crear")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(
             string pNombre,
             string pApellido,
             string pTelefono,
             string pCedula,
-            string clEmail)
+            string clEmail,
+            string redirigirA = null)
         {
             pTelefono = pTelefono.Replace("-", "");
+            int idCliente = 0;
+
             using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
@@ -78,33 +84,44 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@pCedula", pCedula));
             cmd.Parameters.Add(new SqlParameter("@clEmail", clEmail));
 
+            var outParam = new SqlParameter("@OutIdCliente", SqlDbType.Int) { Direction = ParameterDirection.Output };
+            cmd.Parameters.Add(outParam);
+
             await cmd.ExecuteNonQueryAsync();
+            idCliente = (int)outParam.Value;
+
+            // Redirección condicional
+            if (!string.IsNullOrEmpty(redirigirA))
+            {
+                return RedirectToAction("Crear", "Vehiculo", new { idCliente = idCliente, redirigirA = redirigirA });
+            }
+
             return RedirectToAction("Lista");
         }
 
+
         // GET: /Cliente/Editar/5
-        [HttpGet]
-        public async Task<IActionResult> Editar(int id)
+        [HttpGet("Editar/{idCliente}")]
+        public async Task<IActionResult> Editar(int idCliente)
         {
             dynamic cliente = null;
             using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
-            // 1) Traer datos del cliente (ya lo tienes)
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = @"
-            SELECT c.idCliente,
-                   p.pNombre,
-                   p.pApellido,
-                   p.pTelefono,
-                   p.pCedula,
-                   c.clEmail
-              FROM Cliente c
-              JOIN Persona p ON p.idPersona = c.idPersona
-             WHERE c.idCliente = @id";
+        SELECT c.idCliente,
+               p.pNombre,
+               p.pApellido,
+               p.pTelefono,
+               p.pCedula,
+               c.clEmail
+          FROM Cliente c
+          JOIN Persona p ON p.idPersona = c.idPersona
+         WHERE c.idCliente = @idCliente";
                 cmd.CommandType = CommandType.Text;
-                cmd.Parameters.Add(new SqlParameter("@id", id));
+                cmd.Parameters.Add(new SqlParameter("@idCliente", idCliente));
 
                 using var reader = await cmd.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
@@ -112,11 +129,11 @@ namespace syswb_Taller.Controllers
                     cliente = new
                     {
                         IdCliente = reader.GetInt32(0),
-                        Nombre = reader.GetString(1),
-                        Apellido = reader.GetString(2),
-                        Telefono = reader.GetString(3),
-                        Cedula = reader.GetString(4),
-                        Email = reader.GetString(5)
+                        Nombre = reader.IsDBNull(1) ? null : reader.GetString(1),
+                        Apellido = reader.IsDBNull(2) ? null : reader.GetString(2),
+                        Telefono = reader.IsDBNull(3) ? null : reader.GetString(3),
+                        Cedula = reader.IsDBNull(4) ? null : reader.GetString(4),
+                        Email = reader.IsDBNull(5) ? null : reader.GetString(5)
                     };
                 }
             }
@@ -126,33 +143,31 @@ namespace syswb_Taller.Controllers
 
             ViewBag.Cliente = cliente;
 
-            // 2) Traer vehículos del cliente
             var vehiculos = new List<dynamic>();
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = "Get_VehiculosPorCliente";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new SqlParameter("@idCliente", id));
+                cmd.Parameters.Add(new SqlParameter("@idCliente", idCliente));
                 using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
                     vehiculos.Add(new
                     {
-                        Matricula = reader.GetString(0),
-                        Color = reader.GetString(1),
-                        Marca = reader.GetString(2)
+                        Matricula = reader.IsDBNull(0) ? null : reader.GetString(0),
+                        Color = reader.IsDBNull(1) ? null : reader.GetString(1),
+                        Marca = reader.IsDBNull(2) ? null : reader.GetString(2)
                     });
                 }
             }
             ViewBag.Vehiculos = vehiculos;
 
-            // 3) Traer órdenes del cliente (sin filtros, tú puedes exponer parámetros de fecha/estado)
             var ordenes = new List<dynamic>();
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = "Get_OrdenesPorCliente";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new SqlParameter("@idCliente", id));
+                cmd.Parameters.Add(new SqlParameter("@idCliente", idCliente));
                 cmd.Parameters.Add(new SqlParameter("@fechaDesde", DBNull.Value));
                 cmd.Parameters.Add(new SqlParameter("@fechaHasta", DBNull.Value));
                 cmd.Parameters.Add(new SqlParameter("@orEstado", DBNull.Value));
@@ -163,13 +178,13 @@ namespace syswb_Taller.Controllers
                     {
                         IdOrden = reader.GetInt32(0),
                         FechaCreacion = reader.GetDateTime(1),
-                        Estado = reader.GetString(2),
-                        Tipo = reader.GetString(3),
+                        Estado = reader.IsDBNull(2) ? null : reader.GetString(2),
+                        Tipo = reader.IsDBNull(3) ? null : reader.GetString(3),
                         FechaEntrega = reader.IsDBNull(4) ? (DateTime?)null : reader.GetDateTime(4),
                         FechaFin = reader.IsDBNull(5) ? (DateTime?)null : reader.GetDateTime(5),
                         CostoTotal = reader.GetDouble(6),
-                        VehiculoMatric = reader.GetString(7),
-                        VehiculoMarca = reader.GetString(8)
+                        VehiculoMatric = reader.IsDBNull(7) ? null : reader.GetString(7),
+                        VehiculoMarca = reader.IsDBNull(8) ? null : reader.GetString(8)
                     });
                 }
             }
@@ -178,9 +193,8 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-
-        // POST: /Cliente/Editar
-        [HttpPost]
+        // POST: /Cliente/Editar/5
+        [HttpPost("Editar/{idCliente}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(
             int idCliente,
@@ -209,8 +223,8 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("Lista");
         }
 
-        // POST: /Cliente/CambiarEstado
-        [HttpPost]
+        // POST: /Cliente/CambiarEstado/5
+        [HttpPost("CambiarEstado/{idCliente}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CambiarEstado(int idCliente)
         {

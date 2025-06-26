@@ -16,11 +16,16 @@ namespace syswb_Taller.Controllers
             _bdTallerContext = bdTallerContext;
         }
 
-        [HttpGet]
+        // Lista vehículos, si idCliente es null, muestra todos
+        [HttpGet("Lista")]
         [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
-        public async Task<IActionResult> Lista(int idCliente)
+        public async Task<IActionResult> Lista(int? idCliente = null, string matricula = null, string marca = null, bool? activo = null)
         {
             ViewBag.IdCliente = idCliente;
+            ViewBag.FiltroMatricula = matricula;
+            ViewBag.FiltroMarca = marca;
+            ViewBag.FiltroActivo = activo;
+
             var vehiculos = new List<dynamic>();
 
             using var conn = _bdTallerContext.Database.GetDbConnection();
@@ -29,14 +34,14 @@ namespace syswb_Taller.Controllers
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "Get_Vehiculos";
             cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@Matricula", DBNull.Value));
-            cmd.Parameters.Add(new SqlParameter("@Marca", DBNull.Value));
-            cmd.Parameters.Add(new SqlParameter("@Activo", DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@Matricula", (object)matricula ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@Marca", (object)marca ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@Activo", (object)activo ?? DBNull.Value));
 
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                vehiculos.Add(new
+                var vh = new
                 {
                     IdVehiculo = reader.GetInt32(0),
                     vhMatricula = reader.GetString(1),
@@ -45,19 +50,20 @@ namespace syswb_Taller.Controllers
                     vhAño = reader.GetInt32(4),
                     vhColor = reader.GetString(5),
                     vhActivo = reader.GetBoolean(6)
-                });
+                };
+
+                // Filtrar por cliente si idCliente tiene valor
+                // NOTA: Como el SP no retorna idCliente, tendrías que cambiar SP para incluir idCliente en SELECT
+                // o hacer otro método para filtrar por cliente
+                vehiculos.Add(vh);
             }
 
             return View(vehiculos);
         }
 
 
-
-        // GET: /Vehiculo/Crear/5
-        // Dentro de VehiculoController:
-
-        // GET: /Vehiculo/SeleccionarCliente
-        [HttpGet]
+        // Selección de cliente para crear vehículo
+        [HttpGet("SeleccionarCliente")]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> SeleccionarCliente(string nombre = null, bool? activo = null)
         {
@@ -89,18 +95,19 @@ namespace syswb_Taller.Controllers
             return View(clientes);
         }
 
-        // Modificamos tu Crear GET para forzar selección:
-        [HttpGet]
+        // Mostrar formulario creación vehículo para un cliente dado
+        [HttpGet("Crear")]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
-        public async Task<IActionResult> Crear(int? idCliente)
+        public async Task<IActionResult> Crear(int? idCliente, string redirigirA = null)
         {
-            if (idCliente == null)
+            if (!idCliente.HasValue)
             {
                 TempData["Error"] = "Por favor selecciona primero un Cliente.";
                 return RedirectToAction(nameof(SeleccionarCliente));
             }
 
             ViewBag.IdCliente = idCliente.Value;
+            ViewBag.Redireccion = redirigirA;  // Pasamos el parámetro a la vista
             ViewBag.Productos = await _bdTallerContext.ProductoRepuestos.Where(p => p.PrActivo).AsNoTracking().ToListAsync();
             ViewBag.Servicios = await _bdTallerContext.Servicios.Where(s => s.SerActivo).AsNoTracking().ToListAsync();
             ViewBag.Detalles = new List<dynamic>();
@@ -109,19 +116,19 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-
-        // POST: /Vehiculo/Crear
-        [HttpPost]
+        // POST: Crear vehículo
+        [HttpPost("Crear")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Crear(
-            string vhMatricula,
-            string vhMarca,
-            string vhModelo,
-            int vhAño,
-            string vhColor,
-            string vhEstado,
-            int idCliente)
+             string vhMatricula,
+             string vhMarca,
+             string vhModelo,
+             int vhAño,
+             string vhColor,
+             string vhEstado,
+             int idCliente,
+             string redirigirA = null)
         {
             using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
@@ -137,35 +144,53 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@vhEstado", vhEstado));
             cmd.Parameters.Add(new SqlParameter("@idCliente", idCliente));
 
+            var outParam = new SqlParameter("@idVehiculo", SqlDbType.Int)
+            {
+                Direction = ParameterDirection.Output
+            };
+            cmd.Parameters.Add(outParam);
+
             await cmd.ExecuteNonQueryAsync();
-            return RedirectToAction("Lista", "Vehiculo", new { id = idCliente });
+
+            int idVehiculo = (int)outParam.Value;
+
+            if (redirigirA == "Orden")
+            {
+                return RedirectToAction("Crear", "Orden", new { clienteID = idCliente, vehiculoID = idVehiculo });
+            }
+            else if (redirigirA == "Presupuesto")
+            {
+                return RedirectToAction("CrearPresupuesto", "Presupuesto", new { clienteID = idCliente, idVehiculo = idVehiculo });
+            }
+            else
+            {
+                return RedirectToAction("Lista"); // Sin parámetros, vista general
+            }
         }
 
-        [HttpGet]
+        // GET: Editar vehículo
+        [HttpGet("Editar")]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
-        public async Task<IActionResult> Editar(int id, int idCliente)
+        public async Task<IActionResult> Editar(int id)
         {
-            // 'id' ahora es el idVehiculo
-            int idVehiculo = id;
-
             dynamic veh = null;
             using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
-            SELECT vhMatricula, vhMarca, vhModelo, vhAño, vhColor, vhEstado, idCliente
-            FROM Vehiculo
-            WHERE idVehiculo = @idVehiculo";
+                SELECT vhMatricula, vhMarca, vhModelo, vhAño, vhColor, vhEstado, idCliente
+                FROM Vehiculo
+                WHERE idVehiculo = @idVehiculo";
             cmd.CommandType = CommandType.Text;
-            cmd.Parameters.Add(new SqlParameter("@idVehiculo", idVehiculo));
+            cmd.Parameters.Add(new SqlParameter("@idVehiculo", id));
 
             using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
                 veh = new
                 {
-                    IdVehiculo = idVehiculo,
+                    IdVehiculo = id,
                     Matricula = reader.GetString(0),
                     Marca = reader.GetString(1),
                     Modelo = reader.GetString(2),
@@ -180,9 +205,8 @@ namespace syswb_Taller.Controllers
             return View(veh);
         }
 
-        // POST: /Vehiculo/Editar
-        // POST: /Vehiculo/Editar
-        [HttpPost]
+        // POST: Editar vehículo
+        [HttpPost("Editar")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(
@@ -212,18 +236,14 @@ namespace syswb_Taller.Controllers
 
             await cmd.ExecuteNonQueryAsync();
 
-            // ¡Fíjate en la coma y las llaves!
-            return RedirectToAction("Lista", new { idCliente });
+            return RedirectToAction("Lista");
         }
 
-
-
-
-        // POST: /Vehiculo/CambiarEstado
-        [HttpPost]
+        // POST: Cambiar estado vehículo
+        [HttpPost("CambiarEstado")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Supervisor")]
-        public async Task<IActionResult> CambiarEstado(int idVehiculo, int idCliente)
+        public async Task<IActionResult> CambiarEstado(int idVehiculo)
         {
             using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
@@ -234,7 +254,8 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@idVehiculo", idVehiculo));
 
             await cmd.ExecuteNonQueryAsync();
-            return RedirectToAction("Lista", new { idCliente });
+
+            return RedirectToAction("Lista");
         }
     }
 }

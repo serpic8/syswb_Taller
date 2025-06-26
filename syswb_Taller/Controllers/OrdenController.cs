@@ -40,13 +40,13 @@ namespace syswb_Taller.Controllers
                     Creacion = rd.GetDateTime(1),
                     Cliente = rd.GetString(2),
                     Vehiculo = rd.GetString(3),
-                    Entrega = rd.GetDateTime(4),
+                    Entrega = rd.IsDBNull(4) ? (DateTime?)null : rd.GetDateTime(4),
                     Costo = rd.GetDouble(5),
-                    // >>> Cambiado: ahora leemos entero y lo convertimos a bool
                     Pagada = rd.GetInt32(6) == 1,
                     Estado = rd.GetString(7)
                 });
             }
+
 
             ViewBag.FiltroFechaDesde = fechaDesde;
             ViewBag.FiltroFechaHasta = fechaHasta;

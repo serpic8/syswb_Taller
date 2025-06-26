@@ -63,13 +63,12 @@ namespace syswb_Taller.Controllers
                     productos.Add(new ProductoRepuesto
                     {
                         IdProducto = reader.GetInt32(0),
-                        PrNombre = reader.GetString(1),
-                        PrMarca = reader.GetString(2),
-                        PrCategoria = reader.GetString(3),
+                        PrNombre = reader.IsDBNull(1) ? null : reader.GetString(1),
+                        PrMarca = reader.IsDBNull(2) ? null : reader.GetString(2),
+                        PrCategoria = reader.IsDBNull(3) ? null : reader.GetString(3),
                         PrCosto = reader.IsDBNull(4) ? null : reader.GetDouble(4),
                         PrPrecioVenta = reader.IsDBNull(5) ? null : reader.GetDouble(5),
-                        PrStock = reader.GetInt32(6),
-                        // ¡No pongo PrActivo aquí!
+                        PrStock = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
                     });
                 }
             }

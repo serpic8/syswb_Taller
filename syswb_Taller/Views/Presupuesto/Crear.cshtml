@@ -4,204 +4,458 @@
 @{
     int idPresupuesto = Model?.IdPresupuesto ?? 0;
     bool esCreacion = idPresupuesto == 0;
+    bool aprobado = Model?.Estado ?? false;
     ViewBag.Title = esCreacion ? "Nuevo Presupuesto" : "Editar Presupuesto";
     DateTime fecha = esCreacion ? DateTime.Now : Model.Fecha;
     double costoTotal = esCreacion ? 0.0 : Model.CostoTotal;
     var niCulture = new CultureInfo("es-NI");
-
-    // — CORRECCIÓN: casteamos a los tipos reales para que no queden vacíos —
     var packs = ViewBag.Packs as List<syswb_Taller.Models.PackReparacion> ?? new();
     var productos = ViewBag.Productos as List<syswb_Taller.Models.ProductoRepuesto> ?? new();
     var servicios = ViewBag.Servicios as List<syswb_Taller.Models.Servicio> ?? new();
     var detalles = Model?.Detalles as List<dynamic> ?? new List<dynamic>();
+
+    // Para deshabilitar opción si ya existe el mismo pack/producto/servicio en detalles (por nombre)
+    var nombresPacksAgregados = detalles.Where(d => d.Tipo == "Pack").Select(d => (string)d.Nombre).ToHashSet();
+    var nombresProductosAgregados = detalles.Where(d => d.Tipo == "Producto").Select(d => (string)d.Nombre).ToHashSet();
+    var nombresServiciosAgregados = detalles.Where(d => d.Tipo == "Servicio").Select(d => (string)d.Nombre).ToHashSet();
 }
 
-<h2>@ViewBag.Title</h2>
+@section Header { }
+@section Footer { }
 
-<form asp-action="@(esCreacion ? "CrearPresupuesto" : "ActualizarPresupuesto")" method="post" class="mb-4">
-    @Html.AntiForgeryToken()
-    @if (esCreacion)
-    {
-        <input type="hidden" name="clienteID" value="@ViewBag.ClienteID" />
-        <input type="hidden" name="idVehiculo" value="@ViewBag.IdVehiculo" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+    .section-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
     }
-    else
-    {
-        <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
+
+        .section-header i {
+            font-size: 1.5rem;
+            color: #0d6efd;
+            margin-right: .5rem;
+        }
+
+    .card {
+        border-radius: .5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
     }
 
-    <div class="row g-3 mb-3">
-        <div class="col-md-4">
-            <label class="form-label">Número de Presupuesto</label>
-            <input class="form-control"
-                   value="@(esCreacion ? "(se genera al guardar)" : idPresupuesto.ToString())"
-                   readonly />
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Fecha</label>
-            <input class="form-control"
-                   value="@fecha.ToString("dd/MM/yyyy")"
-                   readonly />
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Costo Total</label>
-            <input class="form-control"
-                   value="@costoTotal.ToString("C", niCulture)"
-                   readonly />
-        </div>
+    .card-header {
+        background: #0d6efd;
+        color: #fff;
+        font-weight: 600;
+        padding: .75rem 1.25rem;
+    }
 
-        <div class="col-md-6">
-            <label class="form-label">Cliente</label>
-            <input class="form-control" value="@ViewBag.ClienteNombre" readonly />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Matrícula del Vehículo</label>
-            <input class="form-control" value="@ViewBag.Matricula" readonly />
-        </div>
+    .card-body {
+        padding: 1rem;
+    }
 
-        <div class="col-12">
-            <label class="form-label">Descripción de la falla</label>
-            <textarea name="preFalla"
-                      class="form-control"
-                      rows="3"
-                      required>@(esCreacion ? "" : Model.PreFalla)</textarea>
-        </div>
+    .btn-add {
+        width: 2.5rem;
+    }
 
-        <div class="col-12">
-            <button type="submit" class="btn btn-@(esCreacion ? "success" : "primary")">
-                @(esCreacion ? "Crear Presupuesto" : "Guardar Cambios")
-            </button>
-            <a asp-action="Lista" class="btn btn-secondary ms-2">Cancelar</a>
-        </div>
-    </div>
-</form>
+    .select2-container--default .select2-selection--single {
+        height: calc(2.5rem + 2px);
+    }
 
-@if (!esCreacion)
-{
-    <hr />
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <h5>Agregar Pack</h5>
-            <form asp-action="AgregarPack" method="post" class="row g-2">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
-                <div class="col-8">
-                    <select name="idPack" class="form-select" required>
-                        <option selected disabled>Seleccione pack</option>
-                        @foreach (var p in packs)
-                        {
-                            <option value="@p.IdPack">@p.PckNombre</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-2">
-                    <input name="ppCantidad" type="number" value="1" min="1" class="form-control" />
-                </div>
-                <div class="col-2">
-                    <button class="btn btn-outline-primary">+</button>
-                </div>
-            </form>
-        </div>
+    .has-error .select2-selection {
+        border-color: #dc3545;
+    }
 
-        <div class="col-md-4">
-            <h5>Agregar Producto</h5>
-            <form asp-action="AgregarProducto" method="post" class="row g-2">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
-                <div class="col-8">
-                    <select name="idProducto" class="form-select" required>
-                        <option selected disabled>Seleccione producto</option>
-                        @foreach (var pr in productos)
-                        {
-                            <option value="@pr.IdProducto">@pr.PrNombre</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-2">
-                    <input name="ppCantidad" type="number" value="1" min="1" class="form-control" />
-                </div>
-                <div class="col-2">
-                    <button class="btn btn-outline-primary">+</button>
-                </div>
-            </form>
-        </div>
+    /* Toast básico */
+    #toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1055;
+    }
 
-        <div class="col-md-4">
-            <h5>Agregar Servicio</h5>
-            <form asp-action="AgregarServicio" method="post" class="row g-2">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
-                <div class="col-8">
-                    <select name="idServicio" class="form-select" required>
-                        <option selected disabled>Seleccione servicio</option>
-                        @foreach (var s in servicios)
-                        {
-                            <option value="@s.IdServicio">@s.SerNombre</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-2">
-                    <input name="psCantidad" type="number" value="1" min="1" class="form-control" />
-                </div>
-                <div class="col-2">
-                    <button class="btn btn-outline-primary">+</button>
-                </div>
-            </form>
-        </div>
+    .toast {
+        opacity: .9;
+    }
+</style>
+
+<div class="container mt-4">
+
+    <div class="section-header">
+        <i class="bi bi-journal-check-fill"></i>
+        <h2 class="h4 mb-0">@ViewBag.Title</h2>
     </div>
 
-    <table class="table table-sm table-bordered">
-        <thead class="table-light">
-            <tr>
-                <th>Tipo</th>
-                <th>Nombre</th>
-                <th class="text-end">Cantidad</th>
-                <th class="text-end">Precio Unit.</th>
-                <th class="text-end">Subtotal</th>
-                <th class="text-center">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var d in detalles)
+    @if (aprobado)
+    {
+        <div class="alert alert-success d-flex align-items-center" role="alert">
+            <i class="bi bi-lock-fill me-2"></i>
+            Este presupuesto está aprobado y no puede ser modificado.
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <div class="card @(aprobado ? "aprobado" : "")">
+        <div class="card-header">
+            <i class="bi bi-info-circle me-2"></i>Datos Generales
+        </div>
+        <div class="card-body">
+            @if (!aprobado)
             {
-                <tr>
-                    <td>@d.Tipo</td>
-                    <td>@d.Nombre</td>
-                    <td class="text-end">
-                        <form asp-action="@(d.Tipo == "Pack" ? "ActualizarPack"
-                                        : d.Tipo == "Producto" ? "ActualizarProducto"
-                                        : "ActualizarServicio")"
-                              method="post" class="d-inline-flex">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="idDetalle" value="@d.IdDetalle" />
-                            <input name="@(d.Tipo == "Pack" ? "ppCantidad"
-                                       : d.Tipo == "Producto" ? "ppCantidad"
-                                       : "psCantidad")"
-                                   type="number" value="@d.Cantidad" min="1"
-                                   class="form-control form-control-sm me-2 text-end"
-                                   style="width:4rem;" />
-                            <button class="btn btn-sm btn-outline-primary">✎</button>
-                        </form>
-                    </td>
-                    <td class="text-end">
-                        @((d.Tipo == "Pack" ? d.PrecioPack : d.PrecioUnit).ToString("C", niCulture))
-                    </td>
-                    <td class="text-end">
-                        @((d.Cantidad * (d.Tipo == "Pack" ? d.PrecioPack : d.PrecioUnit))
-                            .ToString("C", niCulture))
-                    </td>
-                    <td class="text-center">
-                        <form asp-action="@(d.Tipo == "Pack" ? "EliminarPack"
-                                        : d.Tipo == "Producto" ? "EliminarProducto"
-                                        : "EliminarServicio")"
-                              method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="idDetalle" value="@d.IdDetalle" />
-                            <button class="btn btn-sm btn-danger">✖</button>
-                        </form>
-                    </td>
-                </tr>
+                <form asp-action="@(esCreacion ? "CrearPresupuesto" : "ActualizarPresupuesto")"
+                      method="post"
+                      class="row g-3 needs-validation"
+                      novalidate>
+                    @Html.AntiForgeryToken()
+
+                    @if (esCreacion)
+                    {
+                        <input type="hidden" name="clienteID" value="@ViewBag.ClienteID" />
+                        <input type="hidden" name="idVehiculo" value="@ViewBag.IdVehiculo" />
+                    }
+                    else
+                    {
+                        <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label"># Presupuesto</label>
+                            <input type="text" class="form-control"
+                                   value="@(esCreacion ? "(se genera al guardar)" : idPresupuesto.ToString())" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha</label>
+                            <input type="text" class="form-control" value="@fecha.ToString("dd/MM/yyyy")" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Costo Total</label>
+                            <input type="text" class="form-control" value="@costoTotal.ToString("C", niCulture)" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente</label>
+                            <input type="text" class="form-control" value="@ViewBag.ClienteNombre" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Vehículo</label>
+                            <input type="text" class="form-control" value="@ViewBag.Matricula" readonly />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descripción de la falla</label>
+                            <textarea name="preFalla" class="form-control" rows="3" required>@(esCreacion ? "" : Model.PreFalla)</textarea>
+                            <div class="invalid-feedback">La descripción es obligatoria.</div>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-@(esCreacion ? "success" : "primary")">
+                                <i class="bi bi-save me-1"></i>@(esCreacion ? "Crear Presupuesto" : "Guardar Cambios")
+                            </button>
+                            <a asp-action="Lista" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </form>
             }
-        </tbody>
-    </table>
+            else
+            {
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label"># Presupuesto</label>
+                        <input type="text" class="form-control" value="@idPresupuesto" readonly />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha</label>
+                        <input type="text" class="form-control" value="@fecha.ToString("dd/MM/yyyy")" readonly />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Costo Total</label>
+                        <input type="text" class="form-control" value="@costoTotal.ToString("C", niCulture)" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Cliente</label>
+                        <input type="text" class="form-control" value="@ViewBag.ClienteNombre" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Vehículo</label>
+                        <input type="text" class="form-control" value="@ViewBag.Matricula" readonly />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descripción de la falla</label>
+                        <textarea class="form-control" rows="3" readonly>@Model.PreFalla</textarea>
+                    </div>
+                    <div class="col-12 text-end">
+                        <a asp-action="Lista" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-x-circle me-1"></i>Cancelar
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (!esCreacion)
+    {
+        <div class="mb-4">
+            <form asp-action="GenerarOrdenDesdePresupuesto" method="post"
+                  onsubmit="return confirm('¿Confirmas generar orden? Esta acción no es reversible');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
+                <button class="btn btn-success" @(aprobado ? "disabled" : "")>
+                    <i class="bi bi-arrow-right-circle me-1"></i>Generar Orden
+                </button>
+            </form>
+        </div>
+
+        <div class="row gy-4">
+            @* Packs *@
+            <div class="col-md-4">
+                <div class="card @(aprobado ? "aprobado" : "")">
+                    <div class="card-header"><i class="bi bi-stack me-1"></i>Agregar Pack</div>
+                    <div class="card-body">
+                        <form asp-action="AgregarPack" method="post" class="row g-2 needs-validation" novalidate>
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
+
+                            <div class="col-8">
+                                <select name="idPack" class="form-select select2" required @(aprobado ? "disabled" : "")>
+                                    <option></option>
+                                    @foreach (var p in packs)
+                                    {
+                                        if (nombresPacksAgregados.Contains(p.PckNombre))
+                                        {
+                                            <option value="@p.IdPack" disabled>@p.PckNombre</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@p.IdPack">@p.PckNombre</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="invalid-feedback">Debes seleccionar un pack.</div>
+                            </div>
+                            <div class="col-2">
+                                <input name="ppCantidad" type="number" value="1" min="1"
+                                       class="form-control" required @(aprobado ? "disabled" : "") />
+                                <div class="invalid-feedback">Cantidad ≥ 1.</div>
+                            </div>
+                            <div class="col-2 text-end">
+                                <button type="submit" class="btn btn-outline-primary btn-add" @(aprobado ? "disabled" : "")>
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            @* Productos *@
+            <div class="col-md-4">
+                <div class="card @(aprobado ? "aprobado" : "")">
+                    <div class="card-header"><i class="bi bi-box-seam me-1"></i>Agregar Producto</div>
+                    <div class="card-body">
+                        <form asp-action="AgregarProducto" method="post" class="row g-2 needs-validation" novalidate>
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
+
+                            <div class="col-8">
+                                <select name="idProducto" class="form-select select2" required @(aprobado ? "disabled" : "")>
+                                    <option></option>
+                                    @foreach (var pr in productos)
+                                    {
+                                        if (nombresProductosAgregados.Contains(pr.PrNombre))
+                                        {
+                                            <option value="@pr.IdProducto" disabled>@pr.PrNombre</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@pr.IdProducto">@pr.PrNombre</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="invalid-feedback">Debes seleccionar un producto.</div>
+                            </div>
+                            <div class="col-2">
+                                <input name="ppCantidad" type="number" value="1" min="1"
+                                       class="form-control" required @(aprobado ? "disabled" : "") />
+                                <div class="invalid-feedback">Cantidad ≥ 1.</div>
+                            </div>
+                            <div class="col-2 text-end">
+                                <button type="submit" class="btn btn-outline-primary btn-add" @(aprobado ? "disabled" : "")>
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            @* Servicios *@
+            <div class="col-md-4">
+                <div class="card @(aprobado ? "aprobado" : "")">
+                    <div class="card-header"><i class="bi bi-tools me-1"></i>Agregar Servicio</div>
+                    <div class="card-body">
+                        <form asp-action="AgregarServicio" method="post" class="row g-2 needs-validation" novalidate>
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="idPresupuesto" value="@idPresupuesto" />
+
+                            <div class="col-8">
+                                <select name="idServicio" class="form-select select2" required @(aprobado ? "disabled" : "")>
+                                    <option></option>
+                                    @foreach (var s in servicios)
+                                    {
+                                        if (nombresServiciosAgregados.Contains(s.SerNombre))
+                                        {
+                                            <option value="@s.IdServicio" disabled>@s.SerNombre</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@s.IdServicio">@s.SerNombre</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="invalid-feedback">Debes seleccionar un servicio.</div>
+                            </div>
+                            <div class="col-2">
+                                <input name="psCantidad" type="number" value="1" min="1"
+                                       class="form-control" required @(aprobado ? "disabled" : "") />
+                                <div class="invalid-feedback">Cantidad ≥ 1.</div>
+                            </div>
+                            <div class="col-2 text-end">
+                                <button type="submit" class="btn btn-outline-primary btn-add" @(aprobado ? "disabled" : "")>
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Tabla de detalles *@
+        <div class="card @(aprobado ? "aprobado" : "")">
+            <div class="card-header"><i class="bi bi-list-check me-1"></i>Detalles Añadidos</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Nombre</th>
+                            <th class="text-end">Cantidad</th>
+                            <th class="text-end">Precio Unit.</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in detalles)
+                        {
+                            <tr>
+                                <td>@d.Tipo</td>
+                                <td>@d.Nombre</td>
+                                <td class="text-end">
+                                    @if (!aprobado)
+                                    {
+                                        <form asp-action="@(d.Tipo=="Pack"?"ActualizarPack":d.Tipo=="Producto"?"ActualizarProducto":"ActualizarServicio")"
+                                              method="post" class="d-inline-flex needs-validation" novalidate>
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="idDetalle" value="@d.IdDetalle" />
+                                            <input name="@(d.Tipo=="Pack"?"ppCantidad":d.Tipo=="Producto"?"ppCantidad":"psCantidad")"
+                                                   type="number" value="@d.Cantidad" min="1"
+                                                   class="form-control form-control-sm me-2 text-end" style="width:4rem;" required />
+                                            <button class="btn btn-sm btn-outline-primary">✎</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <input type="number" class="form-control form-control-sm text-end" style="width:4rem;"
+                                               value="@d.Cantidad" readonly />
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @((d.Tipo == "Pack" ? d.PrecioPack : d.PrecioUnit).ToString("C", niCulture))
+                                </td>
+                                <td class="text-end">
+                                    @((d.Cantidad * (d.Tipo == "Pack" ? d.PrecioPack : d.PrecioUnit)).ToString("C", niCulture))
+                                </td>
+                                <td class="text-center">
+                                    @if (!aprobado)
+                                    {
+                                        <form asp-action="@(d.Tipo=="Pack"?"EliminarPack":d.Tipo=="Producto"?"EliminarProducto":"EliminarServicio")"
+                                              method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="idDetalle" value="@d.IdDetalle" />
+                                            <button class="btn btn-sm btn-danger">✖</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+   
+</div>
+
+<div id="toast-container"></div>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        // Inicializar select2
+        $('.select2').select2({ placeholder: "-- seleccionar --", width: '100%' });
+
+        // Validación Bootstrap
+        $('.needs-validation').on('submit', function (e) {
+            if (!this.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            $(this).addClass('was-validated');
+        });
+
+        // Interceptar intentos de añadir duplicados y mostrar toast
+        $('form[asp-action="AgregarPack"], form[asp-action="AgregarProducto"], form[asp-action="AgregarServicio"]')
+            .on('submit', function (e) {
+                var select = $(this).find('select');
+                var val = select.val();
+                var option = select.find('option[value="' + val + '"]');
+
+                if (option.is(':disabled')) {
+                    e.preventDefault();
+                    showToast('El elemento ya ha sido agregado.', 'warning');
+                }
+            });
+
+        function showToast(message, type) {
+            var toastId = 't' + Date.now();
+            var html = `
+                    <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                      <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                      </div>
+                    </div>`;
+            $('#toast-container').append(html);
+            var bsToast = new bootstrap.Toast(document.getElementById(toastId), { delay: 3000 });
+            bsToast.show();
+        }
+    </script>
 }

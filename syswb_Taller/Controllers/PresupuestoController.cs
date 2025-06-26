@@ -12,9 +12,6 @@ namespace syswb_Taller.Controllers
     public class PresupuestoController : Controller
     {
         private readonly BdTallerContext _bd;
-
-        public PresupuestoController(BdTallerContext bd) => _bd = bd;
-
         #region CRUD_Presupuesto
 
         [HttpGet]
@@ -80,26 +77,39 @@ namespace syswb_Taller.Controllers
             await conn.OpenAsync();
             using var tran = conn.BeginTransaction();
 
+            int idCliente;
+            int idVehiculo;
+
+            // INSERTAR CLIENTE CON OUTPUT
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tran;
                 cmd.CommandText = "Ins_Cliente";
                 cmd.CommandType = CommandType.StoredProcedure;
+
                 cmd.Parameters.Add(new SqlParameter("@pNombre", pNombre));
                 cmd.Parameters.Add(new SqlParameter("@pApellido", pApellido));
                 cmd.Parameters.Add(new SqlParameter("@pTelefono", pTelefono));
                 cmd.Parameters.Add(new SqlParameter("@pCedula", pCedula));
                 cmd.Parameters.Add(new SqlParameter("@clEmail", clEmail));
+
+                var outParamCliente = new SqlParameter("@OutIdCliente", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(outParamCliente);
+
                 await cmd.ExecuteNonQueryAsync();
+                idCliente = (int)outParamCliente.Value;
             }
 
-            int idCliente = (int)await new SqlCommand("SELECT SCOPE_IDENTITY()", (SqlConnection)conn, (SqlTransaction)tran).ExecuteScalarAsync();
-
+            // INSERTAR VEHÍCULO CON OUTPUT
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tran;
                 cmd.CommandText = "Ins_Vehiculo";
                 cmd.CommandType = CommandType.StoredProcedure;
+
                 cmd.Parameters.Add(new SqlParameter("@vhMatricula", vhMatricula));
                 cmd.Parameters.Add(new SqlParameter("@vhMarca", vhMarca));
                 cmd.Parameters.Add(new SqlParameter("@vhModelo", vhModelo));
@@ -107,14 +117,23 @@ namespace syswb_Taller.Controllers
                 cmd.Parameters.Add(new SqlParameter("@vhColor", vhColor));
                 cmd.Parameters.Add(new SqlParameter("@vhEstado", vhEstado));
                 cmd.Parameters.Add(new SqlParameter("@idCliente", idCliente));
+
+                var outParamVehiculo = new SqlParameter("@idVehiculo", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(outParamVehiculo);
+
                 await cmd.ExecuteNonQueryAsync();
+                idVehiculo = (int)outParamVehiculo.Value;
             }
 
-            int idVehiculo = (int)await new SqlCommand("SELECT SCOPE_IDENTITY()", (SqlConnection)conn, (SqlTransaction)tran).ExecuteScalarAsync();
             tran.Commit();
 
             return RedirectToAction("CrearPresupuesto", new { clienteID = idCliente, idVehiculo = idVehiculo });
         }
+
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -154,7 +173,10 @@ namespace syswb_Taller.Controllers
             ViewBag.Matricula = vehiculo?.VhMatricula;
 
             // Catálogos
-            ViewBag.Packs = await _bd.PackReparaciones.Where(p => p.PckActivo).ToListAsync();
+            ViewBag.Packs = await _bd.PackReparaciones
+            .Where(p => p.PckActivo && p.PckPrecio != null)
+            .ToListAsync();
+
             ViewBag.Productos = await _bd.ProductoRepuestos.Where(p => p.PrActivo).ToListAsync();
             ViewBag.Servicios = await _bd.Servicios.Where(s => s.SerActivo).ToListAsync();
 
@@ -220,8 +242,10 @@ namespace syswb_Taller.Controllers
                 Fecha = presupuesto.PreFechaCreacion,
                 CostoTotal = presupuesto.PreCostoTotal,
                 PreFalla = presupuesto.PreFalla,
+                Estado = presupuesto.PreEstado, 
                 Detalles = detalles
             });
+
 
         }
 
@@ -270,9 +294,6 @@ namespace syswb_Taller.Controllers
             return View(clientes);
         }
 
-        // ——————————————————————————
-        // 4) CREAR PRESUPUESTO (paso final)
-        // ——————————————————————————
         [HttpGet]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> CrearPresupuesto(int clienteID, int idVehiculo)
@@ -319,31 +340,36 @@ namespace syswb_Taller.Controllers
 
             int idPresupuesto = 0;
 
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Ins_Presupuesto";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@preFalla", preFalla));
-            cmd.Parameters.Add(new SqlParameter("@idVehiculo", idVehiculo));
-            cmd.Parameters.Add(new SqlParameter("@idCliente", clienteID));
-
-            // Ejecutar y obtener el ID retornado por el SP
-            var result = await cmd.ExecuteScalarAsync();
-
-            if (result != null && result != DBNull.Value)
+            using (var cmd = conn.CreateCommand())
             {
-                idPresupuesto = Convert.ToInt32(result);
+                cmd.CommandText = "Ins_Presupuesto";
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new SqlParameter("@preFalla", preFalla));
+                cmd.Parameters.Add(new SqlParameter("@idVehiculo", idVehiculo));
+                cmd.Parameters.Add(new SqlParameter("@idCliente", clienteID));
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    idPresupuesto = Convert.ToInt32(reader["IdPresupuesto"]);
+                }
             }
-            else
+
+            if (idPresupuesto == 0)
             {
-                // Manejo de error si no se obtiene ID
-                TempData["Error"] = "No se pudo obtener el ID del presupuesto insertado.";
+                TempData["Error"] = "No se pudo crear el presupuesto.";
                 return RedirectToAction("Lista");
             }
 
             return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
         }
 
+
         #endregion
+
+        public PresupuestoController(BdTallerContext bd) => _bd = bd;
+
 
         // INSERCIÓN DE DETALLES
 
@@ -533,6 +559,67 @@ namespace syswb_Taller.Controllers
             await cmd.ExecuteNonQueryAsync();
 
             return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
+        public async Task<IActionResult> GenerarOrdenDesdePresupuesto(int idPresupuesto)
+        {
+            // Validar si ya existe una orden para este presupuesto
+            if (_bd.Ordenes.Any(o => o.IdPresupuesto == idPresupuesto))
+            {
+                TempData["Error"] = "Este presupuesto ya tiene una orden generada.";
+                return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
+            }
+
+            var presupuesto = await _bd.Presupuestos.FindAsync(idPresupuesto);
+            if (presupuesto == null)
+            {
+                TempData["Error"] = "Presupuesto no encontrado.";
+                return RedirectToAction("Lista");
+            }
+
+            // Aquí puedes validar que haya vehículo asignado si quieres:
+            if (presupuesto.IdVehiculo == 0)
+            {
+                TempData["Error"] = "No puede generar orden sin un vehículo asignado.";
+                return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
+            }
+
+            // Aprobar presupuesto
+            presupuesto.PreEstado = true;
+            await _bd.SaveChangesAsync();
+
+            // Ejecutar SP para crear orden desde presupuesto
+            int idOrden = 0;
+            using (var conn = _bd.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Ins_OrdenDesdePresupuesto";
+                cmd.CommandType = CommandType.StoredProcedure;
+                var param = cmd.CreateParameter();
+                param.ParameterName = "@idPresupuesto";
+                param.Value = idPresupuesto;
+                cmd.Parameters.Add(param);
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    idOrden = reader.GetInt32(0);
+                }
+            }
+
+            if (idOrden == 0)
+            {
+                TempData["Error"] = "No se pudo generar la orden desde el presupuesto.";
+                return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
+            }
+
+            TempData["Success"] = "Orden generada correctamente.";
+            return RedirectToAction("Editar", "Orden", new { id = idOrden });
         }
 
 

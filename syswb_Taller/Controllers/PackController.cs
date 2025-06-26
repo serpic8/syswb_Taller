@@ -264,16 +264,29 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarProducto(int idPack, int idProducto, int pdCantidad = 1)
         {
-            using var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Ins_DetallePackProducto";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idPack", idPack));
-            cmd.Parameters.Add(new SqlParameter("@idProducto", idProducto));
-            cmd.Parameters.Add(new SqlParameter("@pdCantidad", pdCantidad));
-            await cmd.ExecuteNonQueryAsync();
-            return RedirectToAction("Detalles", new { idPack });
+            try
+            {
+                using var conn = _bdTallerContext.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Ins_DetallePackProducto";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idPack", idPack));
+                cmd.Parameters.Add(new SqlParameter("@idProducto", idProducto));
+                cmd.Parameters.Add(new SqlParameter("@pdCantidad", pdCantidad));
+                await cmd.ExecuteNonQueryAsync();
+
+                return RedirectToAction("Detalles", new { idPack });
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Message.Contains("ya está asignado al pack"))  // mensaje del SP
+                {
+                    TempData["Error"] = "El producto ya está asignado a este pack.";
+                    return RedirectToAction("Detalles", new { idPack });
+                }
+                throw;
+            }
         }
 
         [HttpPost]
@@ -281,17 +294,31 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarServicio(int idPack, int idServicio, int psCantidad = 1)
         {
-            using var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Ins_DetallePackServicio";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idPack", idPack));
-            cmd.Parameters.Add(new SqlParameter("@idServicio", idServicio));
-            cmd.Parameters.Add(new SqlParameter("@psCantidad", psCantidad));
-            await cmd.ExecuteNonQueryAsync();
-            return RedirectToAction("Detalles", new { idPack });
+            try
+            {
+                using var conn = _bdTallerContext.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Ins_DetallePackServicio";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idPack", idPack));
+                cmd.Parameters.Add(new SqlParameter("@idServicio", idServicio));
+                cmd.Parameters.Add(new SqlParameter("@psCantidad", psCantidad));
+                await cmd.ExecuteNonQueryAsync();
+
+                return RedirectToAction("Detalles", new { idPack });
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Message.Contains("ya está asignado al pack"))  // mensaje del SP
+                {
+                    TempData["Error"] = "El servicio ya está asignado a este pack.";
+                    return RedirectToAction("Detalles", new { idPack });
+                }
+                throw;
+            }
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
