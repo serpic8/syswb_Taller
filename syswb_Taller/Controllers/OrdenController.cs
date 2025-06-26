@@ -261,41 +261,47 @@ namespace syswb_Taller.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Editar(
-            int idOrden,
-            string orEstado,
-            float orCostoTotal,
-            string orTipo,
-            DateTime orFechaEntrega,
-            DateTime? orFechaFin,
-            string orFalla,
-            int idCliente,
-            int idVehiculo,
-            int? idPresupuesto,
-            int? idMecanicoTemp
-        )
+    int idOrden,
+    string orEstado,
+    float orCostoTotal,
+    string orTipo,
+    DateTime orFechaEntrega,
+    DateTime? orFechaFin,
+    string orFalla,
+    int? idPresupuesto,
+    int? idMecanicoTemp
+)
         {
             using var conn = _bd.Database.GetDbConnection();
             await conn.OpenAsync();
+
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "Upd_Orden";
             cmd.CommandType = CommandType.StoredProcedure;
+
             cmd.Parameters.Add(new SqlParameter("@idOrden", idOrden));
             cmd.Parameters.Add(new SqlParameter("@orEstado", orEstado));
             cmd.Parameters.Add(new SqlParameter("@orCostoTotal", orCostoTotal));
             cmd.Parameters.Add(new SqlParameter("@orTipo", orTipo));
             cmd.Parameters.Add(new SqlParameter("@orFechaEntrega", orFechaEntrega));
-            cmd.Parameters.Add(new SqlParameter("@orFechaFin", (object)orFechaFin ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter(
+                "@orFechaFin",
+                orFechaFin.HasValue ? (object)orFechaFin.Value : DBNull.Value
+            ));
             cmd.Parameters.Add(new SqlParameter("@orFalla", orFalla));
-            cmd.Parameters.Add(new SqlParameter("@idCliente", idCliente));
-            cmd.Parameters.Add(new SqlParameter("@idVehiculo", idVehiculo));
-            cmd.Parameters.Add(new SqlParameter("@idPresupuesto", (object)idPresupuesto ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter(
+                "@idPresupuesto",
+                idPresupuesto.HasValue ? (object)idPresupuesto.Value : DBNull.Value
+            ));
+
             await cmd.ExecuteNonQueryAsync();
 
             if (idMecanicoTemp.HasValue)
-                TempData["MecanicoTemp"] = idMecanicoTemp;
+                TempData["MecanicoTemp"] = idMecanicoTemp.Value;
 
             return RedirectToAction("Lista");
         }
+
 
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
