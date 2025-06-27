@@ -146,9 +146,19 @@
                     <a asp-action="AgregarPagoOrden" asp-controller="Orden" asp-route-idOrden="@idOrden" class="btn btn-warning">
                         <i class="bi bi-cash-stack me-1"></i>Registrar Pago
                     </a>
-                    <a asp-action="AgregarEntrega" asp-controller="Orden" asp-route-idOrden="@idOrden" class="btn btn-info">
+                    <button type="button"
+                            class="btn btn-info"
+                            onclick="location.href='@Url.Action("AgregarEntrega", new { idOrden = Model.IdOrden })'"
+                    @(((bool?)(ViewBag.YaPago) ?? false) ? "" : "disabled")>
                         <i class="bi bi-truck me-1"></i>Registrar Entrega
-                    </a>
+                    </button>
+                    <small class="text-muted">
+                        @if (!((bool?)(ViewBag.YaPago) ?? false))
+                        {
+                            <em>Debe registrar al menos un pago antes de entregar.</em>
+                        }
+                    </small>
+
                 </div>
 
                 <div class="details-table card">

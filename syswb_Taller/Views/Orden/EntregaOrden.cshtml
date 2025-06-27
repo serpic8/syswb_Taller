@@ -4,7 +4,6 @@
     ViewBag.Title = Model.IdEntrega == 0 ? "Registrar Entrega" : "Actualizar Entrega";
     bool esCreacion = Model.IdEntrega == 0;
 
-    // Formato del código generado para la orden de entrega
     string ordenEntregaGenerada = "OE-" + Model.IdOrden.ToString("D4") + "-" + DateTime.Now.Year;
     var mecanicoPreasignado = ViewBag.MecanicoAsignado as int?;
 
@@ -23,7 +22,6 @@
         <input type="hidden" name="idEntrega" value="@Model.IdEntrega" />
     }
 
-    <!-- Orden de entrega generada -->
     <div class="mb-3">
         <label class="form-label">Orden de entrega</label>
         <div class="form-control-plaintext fw-bold">
@@ -102,7 +100,6 @@
         </a>
     </div>
 
-    <!-- Modal de confirmación -->
     <div class="modal fade" id="modalConfirmacion" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">

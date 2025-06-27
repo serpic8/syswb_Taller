@@ -1,0 +1,99 @@
+﻿@model syswb_Taller.Models.DetallePagoOrden
+
+@using System.Security.Claims
+
+@{
+    ViewBag.Title = "Registrar Pago";
+    string fechaHora = ViewBag.FechaHora as string ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+
+    var numeroFactura = "FAC-" + Model.IdOrden.ToString("D4") + "-" + DateTime.Now.Year;
+
+    var givenName = User.FindFirstValue(ClaimTypes.GivenName) ?? string.Empty;
+    var surname   = User.FindFirstValue(ClaimTypes.Surname)   ?? string.Empty;
+    string empleadoNombre = string.IsNullOrEmpty(givenName) && string.IsNullOrEmpty(surname)
+        ? "Empleado no identificado"
+        : $"{givenName} {surname}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4>@ViewBag.Title</h4>
+    <span class="text-muted">@fechaHora</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Registrar Pago de Orden #@Model.IdOrden</h4>
+    <div class="text-end">
+        <label class="form-label mb-0">Factura No.</label>
+        <div class="fw-bold">@numeroFactura</div>
+    </div>
+</div>
+
+@if (TempData.ContainsKey("Error"))
+{
+    <div class="alert alert-warning">@TempData["Error"]</div>
+}
+
+<form asp-controller="Orden" asp-action="AgregarPagoOrden" method="post" novalidate class="needs-validation">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="IdOrden" />
+    <input type="hidden" name="idCliente" value="@ViewBag.ClienteID" />
+    @Html.AntiForgeryToken()
+
+
+
+    <div class="mb-3">
+        <label class="form-label">Monto a pagar</label>
+        <input type="text" class="form-control" value="@Model.MontoPagado.ToString("C")" readonly />
+        <input type="hidden" asp-for="MontoPagado" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Forma de Pago</label>
+        <div>
+            @foreach (var fp in new[] { "Contado", "Tarjeta", "Transferencia" })
+            {
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input"
+                           type="radio"
+                           asp-for="MetodoPago"
+                           value="@fp"
+                           required />
+                    <label class="form-check-label">@fp</label>
+                </div>
+            }
+        </div>
+        <div class="invalid-feedback d-block">Seleccione una forma de pago.</div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Observaciones" class="form-label">Detalles del Pago</label>
+        <textarea asp-for="Observaciones" class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Empleado que registra</label>
+        <input type="text" class="form-control" value="@empleadoNombre" readonly />
+        <input type="hidden" asp-for="IdEmpleado" />
+    </div>
+
+    <div class="text-end">
+        <button type="submit" class="btn btn-success">Confirmar Pago</button>
+        <a asp-action="Editar" asp-controller="Orden" asp-route-id="@Model.IdOrden" class="btn btn-secondary ms-2">Cancelar</a>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        (function () {
+            'use strict';
+            document.querySelectorAll('.needs-validation').forEach(form => {
+                form.addEventListener('submit', e => {
+                    if (!form.checkValidity()) {
+                        e.preventDefault(); e.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                });
+            });
+        })();
+    </script>
+}

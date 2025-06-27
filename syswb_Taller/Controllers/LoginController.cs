@@ -41,7 +41,9 @@ namespace syswb_Taller.Controllers
         public async Task<IActionResult> Login(string username, string password, string returnUrl = null)
         {
             ViewBag.ReturnUrl = returnUrl;
-            var empleado = await _bd.Empleados.FirstOrDefaultAsync(e => e.EmpUsuario == username && e.EmpActivo);
+            var empleado = await _bd.Empleados
+                .Include(e => e.IdPersonaNavigation)
+                .FirstOrDefaultAsync(e => e.EmpUsuario == username && e.EmpActivo);
 
             if (empleado == null || !HashPassword(password).SequenceEqual(empleado.EmpContrasena))
             {
@@ -55,6 +57,8 @@ namespace syswb_Taller.Controllers
             {
                 new Claim(ClaimTypes.NameIdentifier, empleado.IdEmpleado.ToString()),
                 new Claim(ClaimTypes.Name, empleado.EmpUsuario),
+                new Claim(ClaimTypes.GivenName, empleado.IdPersonaNavigation.PNombre),   
+                new Claim(ClaimTypes.Surname,   empleado.IdPersonaNavigation.PApellido),
                 new Claim(ClaimTypes.Role, rol?.RTipo ?? "")
             };
 

@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Dynamic;
+using System.Security.Claims;
 using syswb_Taller.Models;
 
 namespace syswb_Taller.Controllers
@@ -218,7 +219,9 @@ namespace syswb_Taller.Controllers
             var orden = await _bd.Ordenes.FindAsync(id);
             if (orden == null) return NotFound();
 
-            var cliente = await _bd.Clientes.Include(c => c.IdPersonaNavigation).FirstAsync(c => c.IdCliente == orden.IdCliente);
+            var cliente = await _bd.Clientes
+                .Include(c => c.IdPersonaNavigation)
+                .FirstAsync(c => c.IdCliente == orden.IdCliente);
             var vehiculo = await _bd.Vehiculos.FindAsync(orden.IdVehiculo);
 
             ViewBag.ClienteID = cliente.IdCliente;
@@ -226,37 +229,76 @@ namespace syswb_Taller.Controllers
             ViewBag.ClienteNombre = cliente.IdPersonaNavigation.PNombre + " " + cliente.IdPersonaNavigation.PApellido;
             ViewBag.Matricula = vehiculo.VhMatricula;
 
-            ViewBag.Estados = new[] { "Pendiente", "En Proceso", "Entregado" };
+            ViewBag.Estados = new[] { "Pendiente", "En Proceso", "Entregado", "Finalizado" };
             ViewBag.Tipos = new[] { "Mantenimiento", "Reparación", "Inspección" };
             ViewBag.Packs = await _bd.PackReparaciones.Where(p => p.PckActivo).ToListAsync();
             ViewBag.Productos = await _bd.ProductoRepuestos.Where(p => p.PrActivo).ToListAsync();
             ViewBag.Servicios = await _bd.Servicios.Where(s => s.SerActivo).ToListAsync();
 
             var detalles = new List<dynamic>();
-            var dpacks = await _bd.OrdenDetallePacks.Include(d => d.IdPackNavigation).Where(d => d.IdOrden == id).ToListAsync();
+            // Packs
+            var dpacks = await _bd.OrdenDetallePacks
+                .Include(d => d.IdPackNavigation)
+                .Where(d => d.IdOrden == id)
+                .ToListAsync();
             foreach (var d in dpacks)
-                detalles.Add(new { Tipo = "Pack", Nombre = d.IdPackNavigation.PckNombre, Cantidad = d.OpCantidad, Precio = d.OpPrecioPack, IdDetalle = d.IdDetalle });
-            var dprods = await _bd.OrdenDetalleProductos.Include(d => d.IdProductoNavigation).Where(d => d.IdOrden == id).ToListAsync();
+                detalles.Add(new
+                {
+                    Tipo = "Pack",
+                    Nombre = d.IdPackNavigation.PckNombre,
+                    Cantidad = d.OpCantidad,
+                    Precio = d.OpPrecioPack,
+                    IdDetalle = d.IdDetalle
+                });
+            // Productos
+            var dprods = await _bd.OrdenDetalleProductos
+                .Include(d => d.IdProductoNavigation)
+                .Where(d => d.IdOrden == id)
+                .ToListAsync();
             foreach (var d in dprods)
-                detalles.Add(new { Tipo = "Producto", Nombre = d.IdProductoNavigation.PrNombre, Cantidad = d.OpCantidad, Precio = d.OpPrecioUnit, IdDetalle = d.IdDetalle });
-            var dservs = await _bd.OrdenDetalleServicios.Include(d => d.IdServicioNavigation).Where(d => d.IdOrden == id).ToListAsync();
+                detalles.Add(new
+                {
+                    Tipo = "Producto",
+                    Nombre = d.IdProductoNavigation.PrNombre,
+                    Cantidad = d.OpCantidad,
+                    Precio = d.OpPrecioUnit,
+                    IdDetalle = d.IdDetalle
+                });
+            // Servicios
+            var dservs = await _bd.OrdenDetalleServicios
+                .Include(d => d.IdServicioNavigation)
+                .Where(d => d.IdOrden == id)
+                .ToListAsync();
             foreach (var d in dservs)
-                detalles.Add(new { Tipo = "Servicio", Nombre = d.IdServicioNavigation.SerNombre, Cantidad = d.OpCantidad, Precio = d.OpPrecioUnit, IdDetalle = d.IdDetalle });
-
+                detalles.Add(new
+                {
+                    Tipo = "Servicio",
+                    Nombre = d.IdServicioNavigation.SerNombre,
+                    Cantidad = d.OpCantidad,
+                    Precio = d.OpPrecioUnit,
+                    IdDetalle = d.IdDetalle
+                });
             ViewBag.Detalles = detalles;
 
             ViewBag.Mecanicos = await _bd.Empleados
                 .Where(e => e.EmpActivo && e.IdRolNavigation.RTipo == "Mecánico")
                 .Include(e => e.IdPersonaNavigation)
-                .Select(e => new
-                {
+                .Select(e => new {
                     e.IdEmpleado,
                     NombreCompleto = e.IdPersonaNavigation.PNombre + " " + e.IdPersonaNavigation.PApellido
-                }).ToListAsync();
+                })
+                .ToListAsync();
+
+
+            ViewBag.YaPago = await _bd.DetallePagoOrdens
+                .AnyAsync(dp => dp.IdOrden == id);
+
+            ViewBag.CostoTotal = orden.OrCostoTotal;
 
 
             return View("Crear", orden);
         }
+
 
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
@@ -564,26 +606,52 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarPagoOrden(int idOrden)
         {
-            var pago = new DetallePagoOrden
+            var orden = await _bd.Ordenes
+            .Include(o => o.DetallePagoOrdens)
+            .Include(o => o.IdVehiculoNavigation)
+            .FirstOrDefaultAsync(o => o.IdOrden == idOrden);
+
+            if (orden == null)
+                return NotFound();
+
+            if (orden.OrCostoTotal == 0 || orden.DetallePagoOrdens.Any())
+            {
+                TempData["Error"] = orden.OrCostoTotal == 0
+                    ? "No puede pagar una orden de costo 0."
+                    : "Esta orden ya tiene un pago registrado.";
+                return RedirectToAction("Editar", new { id = idOrden });
+            }
+
+            int idCliente = orden.IdVehiculoNavigation.IdCliente;
+            ViewBag.ClienteID = idCliente;
+
+            var model = new DetallePagoOrden
             {
                 IdOrden = idOrden,
+                MontoPagado = orden.OrCostoTotal
             };
 
-            var orden = await _bd.Ordenes.FindAsync(idOrden);
-            ViewBag.IdCliente = orden?.IdCliente;
+            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(claimId, out var idEmpleado))
+            {
+                TempData["Error"] = "No se pudo obtener la identidad del empleado.";
+                return RedirectToAction("Editar", new { id = idOrden });
+            }
 
-            ViewBag.Empleados = await _bd.Empleados
-                .Where(e => e.EmpActivo)
+            var empleado = await _bd.Empleados
                 .Include(e => e.IdPersonaNavigation)
-                .Select(e => new
-                {
-                    e.IdEmpleado,
-                    NombreCompleto = e.IdPersonaNavigation.PNombre + " " + e.IdPersonaNavigation.PApellido
-                })
-                .ToListAsync();
+                .FirstOrDefaultAsync(e => e.IdEmpleado == idEmpleado);
 
-            return View("PagoOrden", pago);
+            ViewBag.EmpleadoNombre = empleado != null
+                ? $"{empleado.IdPersonaNavigation.PNombre} {empleado.IdPersonaNavigation.PApellido}"
+                : "Empleado no identificado";
+
+            ViewBag.FechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+
+            return View(model);
         }
+
+
 
 
 
@@ -596,12 +664,35 @@ namespace syswb_Taller.Controllers
             int idOrden,
             string metodoPago,
             string observaciones,
-            int idEmpleado,
-            int idCliente
+            int idCliente,
+            string orden_entrega
         )
         {
+            int idEmpleado = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            var orden = await _bd.Ordenes.FindAsync(idOrden);
+            if (orden == null)
+            {
+                TempData["Error"] = "Orden no encontrada.";
+                return RedirectToAction("Editar", new { id = idOrden });
+            }
+
+            if (orden.OrCostoTotal == 0)
+            {
+                TempData["Error"] = "No puede realizar pagos en una orden cuyo costo es 0.";
+                return RedirectToAction("Editar", new { id = idOrden });
+            }
+
+            bool yaPago = await _bd.DetallePagoOrdens.AnyAsync(dp => dp.IdOrden == idOrden);
+            if (yaPago)
+            {
+                TempData["Error"] = "Esta orden ya tiene un pago registrado.";
+                return RedirectToAction("Editar", new { id = idOrden });
+            }
+
             using var conn = _bd.Database.GetDbConnection();
             await conn.OpenAsync();
+
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "Ins_DetallePagoOrden";
             cmd.CommandType = CommandType.StoredProcedure;
@@ -610,10 +701,12 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@observaciones", (object)observaciones ?? DBNull.Value));
             cmd.Parameters.Add(new SqlParameter("@idEmpleado", idEmpleado));
             cmd.Parameters.Add(new SqlParameter("@idCliente", idCliente));
+
             await cmd.ExecuteNonQueryAsync();
 
             return RedirectToAction("Editar", new { id = idOrden });
         }
+
 
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
