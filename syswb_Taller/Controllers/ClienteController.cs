@@ -226,7 +226,7 @@ namespace syswb_Taller.Controllers
         }
 
         [Authorize(Roles = "Administrador, Supervisor")]
-        [HttpPost("CambiarEstado/{idCliente}")]
+        [HttpPost("CambiarEstado")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CambiarEstado(int idCliente)
         {

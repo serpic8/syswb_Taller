@@ -1,7 +1,6 @@
 ﻿@{
     ViewBag.Title = "Listado de Packs";
     var packs = ViewBag.Packs as List<dynamic> ?? new List<dynamic>();
-    string filtroNombre = ViewBag.FiltroNombre as string ?? "";
     bool? filtroActivo = ViewBag.FiltroActivo as bool?;
 }
 
@@ -18,35 +17,42 @@
             align-items: center;
             margin-bottom: 1.5rem;
         }
+
         .filter-form {
             display: flex;
             gap: 1rem;
         }
-        .filter-form .form-label {
-            margin-bottom: .25rem;
-        }
+
+            .filter-form .form-label {
+                margin-bottom: .25rem;
+            }
+
         .table-card {
             border-radius: .5rem;
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.05);
         }
-        .table-card .card-header {
-            background: #0097cc;
-            color: #fff;
-            font-weight: 600;
-            padding: .75rem 1.25rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .table-card table tr:hover {
-            background-color: rgba(0,151,204,0.05);
-            cursor: pointer;
-        }
+
+            .table-card .card-header {
+                background: #0097cc;
+                color: #fff;
+                font-weight: 600;
+                padding: .75rem 1.25rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .table-card table tr:hover {
+                background-color: rgba(0,151,204,0.05);
+                cursor: pointer;
+            }
+
         .table th, .table td {
             vertical-align: middle;
         }
     </style>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
 }
 
 <div class="d-flex justify-content-end mb-3">
@@ -67,8 +73,8 @@
 
         <form method="get" asp-action="Lista" class="filter-form">
             <div>
-                <label class="form-label d-block"><i class="bi bi-card-text me-1"></i>Nombre</label>
-                <input name="nombre" class="form-control form-control-sm" value="@filtroNombre" placeholder="Buscar..." />
+                <label class="form-label d-block"><i class="bi bi-search me-1"></i>Buscar</label>
+                <input type="text" id="dtSearch" class="form-control form-control-sm" placeholder="Buscar..." />
             </div>
             <div>
                 <label class="form-label d-block"><i class="bi bi-toggle2-on me-1"></i>Activo</label>
@@ -80,7 +86,7 @@
             </div>
             <div class="d-flex align-items-end">
                 <button class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel-fill me-1"></i>Filtrar
+                    <i class="bi bi-funnel-fill me-1"></i>Filtrar Activo
                 </button>
             </div>
         </form>
@@ -94,7 +100,7 @@
             </a>
         </div>
         <div class="card-body p-0">
-            <table class="table table-hover mb-0">
+            <table id="packsTable" class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
                         <th><i class="bi bi-hash me-1"></i>ID</th>
@@ -145,3 +151,30 @@
     </div>
 
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            var table = $('#packsTable').DataTable({
+                dom: 'lrtip',
+                lengthChange: false,
+                pageLength: 20,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Buscar...",
+                    paginate: { previous: "Anterior", next: "Siguiente" }
+                },
+                order: [[0, 'asc']],
+                columnDefs: [{ orderable: true, targets: '_all' }]
+            });
+
+            $('#dtSearch').on('input', function () {
+                table.search(this.value).draw();
+            });
+        });
+    </script>
+}
