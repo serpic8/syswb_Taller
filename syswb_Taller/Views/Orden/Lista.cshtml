@@ -3,7 +3,6 @@
 @{
     ViewBag.Title = "Listado de Órdenes";
     var list = Model;
-    string filtroCliente = ViewBag.FiltroCliente as string ?? "";
     DateTime? fechaDesde = ViewBag.FiltroFechaDesde as DateTime?;
     DateTime? fechaHasta = ViewBag.FiltroFechaHasta as DateTime?;
     bool? filtroEstado = ViewBag.FiltroEstado as bool?;
@@ -29,35 +28,36 @@
             flex-wrap: wrap;
         }
 
-        .filter-form .form-label {
-            margin-bottom: .25rem;
-        }
+            .filter-form .form-label {
+                margin-bottom: .25rem;
+            }
 
-        .table-card { 
+        .table-card {
             border-radius: .5rem;
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.05);
         }
 
-        .table-card .card-header {
-            background: #0097cc;
-            color: #fff;
-            font-weight: 600;
-            padding: .75rem 1.25rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+            .table-card .card-header {
+                background: #0097cc;
+                color: #fff;
+                font-weight: 600;
+                padding: .75rem 1.25rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
 
-        .table-card table tr:hover {
-            background-color: rgba(0,151,204,0.05);
-            cursor: pointer;
-        }
+            .table-card table tr:hover {
+                background-color: rgba(0,151,204,0.05);
+                cursor: pointer;
+            }
 
         .table th, .table td {
             vertical-align: middle;
         }
     </style>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
 }
 
 <div class="d-flex justify-content-end mb-3">
@@ -69,8 +69,6 @@
 </div>
 
 <div class="container mt-4">
-<div class="container mt-4">
-
     <div class="header-filter">
         <div class="d-flex align-items-center">
             <i class="bi bi-list-check fs-3 text-primary me-2"></i>
@@ -80,8 +78,8 @@
 
     <form method="get" asp-action="Lista" class="filter-form mb-4">
         <div>
-            <label class="form-label d-block"><i class="bi bi-person me-1"></i>Cliente</label>
-            <input name="clienteID" class="form-control form-control-sm" value="@filtroCliente" placeholder="Buscar cliente..." />
+            <label class="form-label d-block"><i class="bi bi-search me-1"></i>Buscar</label>
+            <input type="text" id="dtSearch" class="form-control form-control-sm" placeholder="Buscar..." />
         </div>
         <div>
             <label class="form-label d-block"><i class="bi bi-calendar me-1"></i>Desde</label>
@@ -101,7 +99,7 @@
         </div>
         <div class="d-flex align-items-end">
             <button class="btn btn-primary btn-sm">
-                <i class="bi bi-funnel-fill me-1"></i>Filtrar
+                <i class="bi bi-funnel-fill me-1"></i>Filtrar Fechas / Estado
             </button>
         </div>
     </form>
@@ -109,17 +107,12 @@
     <div class="table-card">
         <div class="card-header">
             <span><i class="bi bi-list-columns-reverse me-2"></i>Listado de Órdenes</span>
-                <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Orden" class="btn btn-primary">
-                    <i class="bi bi-person-plus me-1"></i> Crear Orden
-                </a>
-
-
+            <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Orden" class="btn btn-primary">
+                <i class="bi bi-person-plus me-1"></i> Crear Orden
+            </a>
         </div>
-    <di/>
-
-    <div class="table-card">        
         <div class="card-body p-0">
-            <table class="table table-hover mb-0">
+            <table id="ordenesTable" class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
                         <th><i class="bi bi-hash me-1"></i>ID</th>
@@ -132,61 +125,89 @@
                         <th><i class="bi bi-info-circle me-1"></i>Estado</th>
                     </tr>
                 </thead>
-                        <tbody>
-                            @if (list.Any())
-                            {
-                                foreach (var o in list)
-                                {
-                                    var url = Url.Action("Editar", "Orden", new { id = o.Id });
-
-                                    <tr ondblclick="window.location='@url'">
-                                        <td>@o.Id</td>
-                                        <td>@o.Creacion.ToString("g")</td>
-                                        <td>@o.Cliente</td>
-                                        <td>@o.Vehiculo</td>
-                                        <td>@(o.Entrega?.ToString("d") ?? "")</td>
-                                        <td class="text-end">@o.Costo.ToString("C")</td>
-                                        <td class="text-center">
-                                            @if (o.Pagada)
-                                            {
-                                                <span class="badge bg-success">Sí</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-warning text-dark">No</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @switch (o.Estado)
-                                            {
-                                                case "Pendiente":
-                                                    <span class="text-warning">@o.Estado</span>
-                                                    break;
-                                                case "En Proceso":
-                                                    <span class="text-primary">@o.Estado</span>
-                                                    break;
-                                                case "Entregado":
-                                                    <span class="text-success">@o.Estado</span>
-                                                    break;
-                                                default:
-                                                    @o.Estado
-                                                    break;
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="8" class="text-center py-4">
-                                        <i class="bi bi-exclamation-circle me-2"></i>No se encontraron órdenes.
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
+                <tbody>
+                    @if (list.Any())
+                    {
+                        foreach (var o in list)
+                        {
+                            var url = Url.Action("Editar", "Orden", new { id = o.Id });
+                            <tr ondblclick="window.location='@url'">
+                                <td>@o.Id</td>
+                                <td>@o.Creacion.ToString("g")</td>
+                                <td>@o.Cliente</td>
+                                <td>@o.Vehiculo</td>
+                                <td>@(o.Entrega?.ToString("d") ?? "")</td>
+                                <td class="text-end">@o.Costo.ToString("C")</td>
+                                <td class="text-center">
+                                    @if (o.Pagada)
+                                    {
+                                        <span class="badge bg-success">Sí</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">No</span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (o.Estado)
+                                    {
+                                        case "Pendiente":
+                                            <span class="text-warning">@o.Estado</span>
+                                            break;
+                                        case "En Proceso":
+                                            <span class="text-primary">@o.Estado</span>
+                                            break;
+                                        case "Entregado":
+                                            <span class="text-success">@o.Estado</span>
+                                            break;
+                                        default:
+                                            @o.Estado
+                                            break;
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="bi bi-exclamation-circle me-2"></i>No se encontraron órdenes.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
             </table>
         </div>
     </div>
-
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var table = $('#ordenesTable').DataTable({
+                dom: 'lrtip',            // quita buscador interno
+                lengthChange: false,
+                pageLength: 20,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Buscar...",
+                    paginate: { previous: "Anterior", next: "Siguiente" }
+                },
+                order: [[0, 'asc']],
+                columnDefs: [{ orderable: true, targets: '_all' }]
+            });
+
+            // Conecta buscador externo
+            $('#dtSearch').on('input', function () {
+                table.search(this.value).draw();
+            });
+        });
+    </script>
+}
