@@ -305,7 +305,6 @@ namespace syswb_Taller.Controllers
         public async Task<IActionResult> Editar(
     int idOrden,
     string orEstado,
-    float orCostoTotal,
     string orTipo,
     DateTime orFechaEntrega,
     DateTime? orFechaFin,
@@ -323,7 +322,6 @@ namespace syswb_Taller.Controllers
 
             cmd.Parameters.Add(new SqlParameter("@idOrden", idOrden));
             cmd.Parameters.Add(new SqlParameter("@orEstado", orEstado));
-            cmd.Parameters.Add(new SqlParameter("@orCostoTotal", orCostoTotal));
             cmd.Parameters.Add(new SqlParameter("@orTipo", orTipo));
             cmd.Parameters.Add(new SqlParameter("@orFechaEntrega", orFechaEntrega));
             cmd.Parameters.Add(new SqlParameter(
