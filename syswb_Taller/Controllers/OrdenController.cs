@@ -349,15 +349,23 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarPack(int idOrden, int idPack, int opCantidad)
         {
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Ins_OrdenDetPack";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idOrden", idOrden));
-            cmd.Parameters.Add(new SqlParameter("@idPack", idPack));
-            cmd.Parameters.Add(new SqlParameter("@opCantidad", opCantidad));
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Ins_OrdenDetPack";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idOrden", idOrden));
+                cmd.Parameters.Add(new SqlParameter("@idPack", idPack));
+                cmd.Parameters.Add(new SqlParameter("@opCantidad", opCantidad));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+
+                TempData["Error"] = ex.Message;
+            }
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
@@ -365,31 +373,48 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarProducto(int idOrden, int idProducto, int opCantidad)
         {
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Ins_OrdenDetProducto";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idOrden", idOrden));
-            cmd.Parameters.Add(new SqlParameter("@idProducto", idProducto));
-            cmd.Parameters.Add(new SqlParameter("@opCantidad", opCantidad));
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Ins_OrdenDetProducto";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idOrden", idOrden));
+                cmd.Parameters.Add(new SqlParameter("@idProducto", idProducto));
+                cmd.Parameters.Add(new SqlParameter("@opCantidad", opCantidad));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+
+                TempData["Error"] = ex.Message;
+            }
             return RedirectToAction("Editar", new { id = idOrden });
+
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarServicio(int idOrden, int idServicio, int opCantidad)
         {
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Ins_OrdenDetServicio";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idOrden", idOrden));
-            cmd.Parameters.Add(new SqlParameter("@idServicio", idServicio));
-            cmd.Parameters.Add(new SqlParameter("@opCantidad", opCantidad));
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Ins_OrdenDetServicio";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idOrden", idOrden));
+                cmd.Parameters.Add(new SqlParameter("@idServicio", idServicio));
+                cmd.Parameters.Add(new SqlParameter("@opCantidad", opCantidad));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+
+                TempData["Error"] = ex.Message;
+            }
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
@@ -397,16 +422,26 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarPack(int idDetalle, int? opCantidad)
         {
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Upd_OrdenDetPack";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
-            cmd.Parameters.Add(new SqlParameter("@opCantidad", (object)opCantidad ?? DBNull.Value));
-            await cmd.ExecuteNonQueryAsync();
-
             var idOrden = await _bd.OrdenDetallePacks.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Upd_OrdenDetPack";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
+                cmd.Parameters.Add(new SqlParameter("@opCantidad", (object)opCantidad ?? DBNull.Value));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Message.Contains("Stock insuficiente"))
+                    TempData["Error"] = "No hay stock suficiente para uno o más componentes del pack.";
+                else
+                    TempData["Error"] = ex.Message;
+            }
+
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
@@ -414,16 +449,29 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarProducto(int idDetalle, int? opCantidad)
         {
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Upd_OrdenDetProducto";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
-            cmd.Parameters.Add(new SqlParameter("@opCantidad", (object)opCantidad ?? DBNull.Value));
-            await cmd.ExecuteNonQueryAsync();
-
             var idOrden = await _bd.OrdenDetalleProductos.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+
+
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Upd_OrdenDetProducto";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
+                cmd.Parameters.Add(new SqlParameter("@opCantidad", (object)opCantidad ?? DBNull.Value));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+
+                if (ex.Message.Contains("Stock insuficiente"))
+                    TempData["Error"] = "No hay suficiente stock disponible para este producto.";
+                else
+                    TempData["Error"] = ex.Message;
+            }
+
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
@@ -431,16 +479,25 @@ namespace syswb_Taller.Controllers
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> ActualizarServicio(int idDetalle, int? opCantidad)
         {
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Upd_OrdenDetServicio";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
-            cmd.Parameters.Add(new SqlParameter("@opCantidad", (object)opCantidad ?? DBNull.Value));
-            await cmd.ExecuteNonQueryAsync();
-
             var idOrden = await _bd.OrdenDetalleServicios.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Upd_OrdenDetServicio";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
+                cmd.Parameters.Add(new SqlParameter("@opCantidad", (object)opCantidad ?? DBNull.Value));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+
+                TempData["Error"] = ex.Message;
+            }
+
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
@@ -449,13 +506,21 @@ namespace syswb_Taller.Controllers
         public async Task<IActionResult> EliminarPack(int idDetalle)
         {
             var idOrden = await _bd.OrdenDetallePacks.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Del_OrdenDetPack";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Del_OrdenDetPack";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+
+                TempData["Error"] = ex.Message;
+            }
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
@@ -464,13 +529,21 @@ namespace syswb_Taller.Controllers
         public async Task<IActionResult> EliminarProducto(int idDetalle)
         {
             var idOrden = await _bd.OrdenDetalleProductos.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Del_OrdenDetProducto";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Del_OrdenDetProducto";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+
+                TempData["Error"] = ex.Message;
+            }
             return RedirectToAction("Editar", new { id = idOrden });
         }
 
@@ -479,13 +552,21 @@ namespace syswb_Taller.Controllers
         public async Task<IActionResult> EliminarServicio(int idDetalle)
         {
             var idOrden = await _bd.OrdenDetalleServicios.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
-            using var conn = _bd.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "Del_OrdenDetServicio";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                using var conn = _bd.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "Del_OrdenDetServicio";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@idDetalle", idDetalle));
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+
+                TempData["Error"] = ex.Message;
+            }
             return RedirectToAction("Editar", new { id = idOrden });
         }
 

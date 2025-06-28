@@ -228,6 +228,7 @@
                             <th>ID</th>
                             <th>Creación</th>
                             <th>Estado</th>
+                            <th>Fecha Pago</th>
                             <th>Pago</th>
                         </tr>
                     </thead>
@@ -236,18 +237,28 @@
                         {
                             <tr>
                                 <td>@o.IdOrden</td>
-                                <td>@((DateTime)o.OrFechaCreacion).ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    @(o.OrFechaCreacion != null
+                                        ? ((DateTime)o.OrFechaCreacion).ToString("g")
+                                        : "-")
+                                </td>
                                 <td>@o.OrEstado</td>
                                 <td>
-                                    @((DateTime)o.FechaPago).ToString("dd/MM/yyyy")<br />
-                                    <span class="text-end d-block">
-                                        @((decimal)o.MontoPagado).ToString("C2", nicaragua)
-                                    </span>
+                                    @(o.FechaPago != null
+                                        ? ((DateTime)o.FechaPago).ToString("g")
+                                        : "-")
+                                </td>
+                                <td class="text-end">
+                                    @(o.MontoPagado != null
+                                        ? ((decimal)o.MontoPagado).ToString("C2", nicaragua)
+                                        : "-")
                                 </td>
                             </tr>
                         }
                     </tbody>
                 </table>
+
+
             </div>
         </div>
     </div>
