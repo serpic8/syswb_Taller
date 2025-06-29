@@ -107,9 +107,9 @@
     <div class="table-card">
         <div class="card-header">
             <span><i class="bi bi-list-columns-reverse me-2"></i>Listado de Órdenes</span>
-            <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Orden" class="btn btn-primary">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#chooseClientModal">
                 <i class="bi bi-person-plus me-1"></i> Crear Orden
-            </a>
+            </button>
         </div>
         <div class="card-body p-0">
             <table id="ordenesTable" class="table table-hover mb-0">
@@ -181,6 +181,30 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: elegir crear o seleccionar cliente -->
+<div class="modal fade" id="chooseClientModal" tabindex="-1" aria-labelledby="chooseClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chooseClientModalLabel">Crear Orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>¿Cómo deseas continuar?</p>
+                <div class="d-grid gap-2">
+                    <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Orden" class="btn btn-success">
+                        Crear Cliente
+                    </a>
+                    <a asp-controller="Orden" asp-action="SeleccionarClienteOrden" class="btn btn-secondary">
+                        Seleccionar Cliente
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>

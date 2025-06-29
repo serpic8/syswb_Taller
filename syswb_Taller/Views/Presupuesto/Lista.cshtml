@@ -97,9 +97,9 @@
     <div class="table-card">
         <div class="card-header">
             <span><i class="bi bi-list-columns-reverse me-2"></i>Listado de Presupuestos</span>
-            <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Presupuesto" class="btn btn-primary">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#chooseClientPresModal">
                 <i class="bi bi-person-plus me-1"></i> Crear presupuesto
-            </a>
+            </button>
         </div>
         <div class="card-body p-0">
             <table id="presupuestosTable" class="table table-hover mb-0">
@@ -149,6 +149,30 @@
     </div>
 
 </div>
+
+<!-- Modal: elegir crear o seleccionar cliente para presupuesto -->
+<div class="modal fade" id="chooseClientPresModal" tabindex="-1" aria-labelledby="chooseClientPresModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chooseClientPresModalLabel">Nuevo Presupuesto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>¿Cómo deseas continuar?</p>
+                <div class="d-grid gap-2">
+                    <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Presupuesto" class="btn btn-success">
+                        Crear Cliente
+                    </a>
+                    <a asp-controller="Presupuesto" asp-action="SeleccionarClientePresupuesto" class="btn btn-secondary">
+                        Seleccionar Cliente
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
