@@ -164,16 +164,23 @@
     <div>
         @if (!cajaAbierta)
         {
-            <a asp-action="AbrirCajaDiaria" class="btn btn-warning fw-bold">
-                <i class="bi bi-box-arrow-in-down me-1"></i>Abrir Caja
-            </a>
+            <form asp-controller="CajaDiaria" asp-action="AbrirCaja" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning fw-bold">
+                    <i class="bi bi-box-arrow-in-down me-1"></i>Abrir Caja
+                </button>
+            </form>
         }
         else
         {
-            <a asp-action="CerrarCajaDiaria" class="btn btn-danger fw-bold">
-                <i class="bi bi-box-arrow-up-left me-1"></i>Cerrar Caja
-            </a>
+            <form asp-controller="CajaDiaria" asp-action="CerrarCaja" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger fw-bold">
+                    <i class="bi bi-box-arrow-up-left me-1"></i>Cerrar Caja
+                </button>
+            </form>
         }
+
         <form asp-controller="Menu" asp-action="Logout" method="post" class="d-inline">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-outline-light fw-bold">
@@ -187,23 +194,12 @@
 <!-- Main Content -->
 <div class="main-content">
     <div class="text-center mb-4">
-        <div class="dropdown d-inline">
-            <button class="create-btn dropdown-toggle" data-bs-toggle="dropdown">
-                <i class="bi bi-plus-lg me-1"></i>Crear
-            </button>
-            <ul class="dropdown-menu">
-                <li>
-                    <a class="dropdown-item" asp-action="CrearClienteVehiculo" asp-controller="Orden">
-                        <i class="bi bi-card-list me-2"></i>Nueva Orden
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" asp-action="CrearClienteVehiculo" asp-controller="Presupuesto">
-                        <i class="bi bi-receipt me-2"></i>Nuevo Presupuesto
-                    </a>
-                </li>
-            </ul>
-        </div>
+        <button type="button"
+                class="btn btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#chooseTypeModal">
+            <i class="bi bi-plus-lg me-1"></i>Crear
+        </button>
     </div>
     <div class="button-grid">
         <a class="btn-orden" asp-action="Orden" asp-controller="Menu">
@@ -242,11 +238,85 @@
     </div>
 </div>
 
+
 <!-- Bottom Bar -->
 <div class="bottom-bar">
     <div><i class="bi bi-person-circle me-1"></i>@usuario</div>
     <div class="clock"><i class="bi bi-clock me-1"></i><span id="liveClock"></span></div>
 </div>
+
+
+
+
+<!-- Paso 1: elegir Tipo -->
+<div class="modal fade" id="chooseTypeModal" tabindex="-1" aria-labelledby="chooseTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chooseTypeModalLabel">¿Qué deseas crear?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>Selecciona una opción:</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" id="btnCreateOrder">
+                        <i class="bi bi-card-list me-1"></i> Crear Orden
+                    </button>
+                    <button type="button" class="btn btn-success" id="btnCreatePresupuesto">
+                        <i class="bi bi-receipt me-1"></i> Crear Presupuesto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Paso 2a: elegir cliente para Orden -->
+<div class="modal fade" id="chooseClientOrderModal" tabindex="-1" aria-labelledby="chooseClientOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chooseClientOrderModalLabel">Crear Orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>¿Cómo deseas continuar?</p>
+                <div class="d-grid gap-2">
+                    <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Orden" class="btn btn-outline-primary">
+                        <i class="bi bi-person-plus me-1"></i> Nuevo Cliente
+                    </a>
+                    <a asp-controller="Orden" asp-action="SeleccionarClienteOrden" class="btn btn-outline-secondary">
+                        <i class="bi bi-people me-1"></i> Seleccionar Cliente
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Paso 2b: elegir cliente para Presupuesto -->
+<div class="modal fade" id="chooseClientPresModal" tabindex="-1" aria-labelledby="chooseClientPresModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chooseClientPresModalLabel">Crear Presupuesto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>¿Cómo deseas continuar?</p>
+                <div class="d-grid gap-2">
+                    <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Presupuesto" class="btn btn-outline-primary">
+                        <i class="bi bi-person-plus me-1"></i> Nuevo Cliente
+                    </a>
+                    <a asp-controller="Presupuesto" asp-action="SeleccionarClientePresupuesto" class="btn btn-outline-secondary">
+                        <i class="bi bi-people me-1"></i> Seleccionar Cliente
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @section Scripts {
     <script>
@@ -261,5 +331,28 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        const chooseTypeModalEl = document.getElementById('chooseTypeModal');
+        const chooseTypeModal = new bootstrap.Modal(chooseTypeModalEl);
+        const orderModal = new bootstrap.Modal(document.getElementById('chooseClientOrderModal'));
+        const presModal = new bootstrap.Modal(document.getElementById('chooseClientPresModal'));
+
+        // Flujos
+        document.getElementById('btnCreateOrder').addEventListener('click', () => {
+            chooseTypeModal.hide();
+            orderModal.show();
+        });
+        document.getElementById('btnCreatePresupuesto').addEventListener('click', () => {
+            chooseTypeModal.hide();
+            presModal.show();
+        });
+
+        // Reiniciar flujo al cerrar cualquier modal secundario
+        ['chooseClientOrderModal', 'chooseClientPresModal'].forEach(id => {
+            document.getElementById(id).addEventListener('hidden.bs.modal', () => {
+                // si quieres volver al primer modal:
+                // chooseTypeModal.show();
+            });
+        });
     </script>
 }
