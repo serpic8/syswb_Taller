@@ -543,13 +543,12 @@ namespace syswb_Taller.Controllers
             return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
         }
 
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> GenerarOrdenDesdePresupuesto(int idPresupuesto)
         {
-            if (_bd.Ordenes.Any(o => o.IdPresupuesto == idPresupuesto))
+            if (await _bd.Ordenes.AnyAsync(o => o.IdPresupuesto == idPresupuesto))
             {
                 TempData["Error"] = "Este presupuesto ya tiene una orden generada.";
                 return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
@@ -568,26 +567,26 @@ namespace syswb_Taller.Controllers
                 return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
             }
 
-            presupuesto.PreEstado = true;
-            await _bd.SaveChangesAsync();
-
             int idOrden = 0;
-            using (var conn = _bd.Database.GetDbConnection())
+            try
             {
+                using var conn = _bd.Database.GetDbConnection();
                 await conn.OpenAsync();
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = "Ins_OrdenDesdePresupuesto";
                 cmd.CommandType = CommandType.StoredProcedure;
-                var param = cmd.CreateParameter();
-                param.ParameterName = "@idPresupuesto";
-                param.Value = idPresupuesto;
-                cmd.Parameters.Add(param);
+                cmd.Parameters.Add(new SqlParameter("@idPresupuesto", idPresupuesto));
 
                 using var reader = await cmd.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
                 {
                     idOrden = reader.GetInt32(0);
                 }
+            }
+            catch (SqlException ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
             }
 
             if (idOrden == 0)
@@ -596,10 +595,12 @@ namespace syswb_Taller.Controllers
                 return RedirectToAction("EditarPresupuesto", new { id = idPresupuesto });
             }
 
-            TempData["Success"] = "Orden generada correctamente.";
-            return RedirectToAction("Editar", "Orden", new { id = idOrden });
-        }
+            presupuesto.PreEstado = true;
+            await _bd.SaveChangesAsync();
 
+            TempData["Success"] = "Orden generada correctamente.";
+            return RedirectToAction("Editar", new { id = idOrden });
+        }
 
     }
 }

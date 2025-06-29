@@ -5,8 +5,21 @@
     int idOrden = Model?.IdOrden ?? 0;
     bool esCreacion = idOrden == 0;
     ViewBag.Title = esCreacion ? "Nueva Orden" : "Editar Orden";
-    DateTime fecha = esCreacion ? DateTime.Now : Model.OrFechaCreacion;
-    double costoTotal = esCreacion ? 0m : Model.OrCostoTotal;
+
+    string fechaEntregaStr = "";
+    if (!esCreacion)
+    {
+        var dt = (DateTime?)Model.OrFechaEntrega;
+        fechaEntregaStr = dt.HasValue
+            ? dt.Value.ToString("yyyy-MM-dd")
+            : "";
+    }
+
+    // --- costoTotal como decimal, igual que en BD ---
+    decimal costoTotal = esCreacion
+        ? 0m
+        : (decimal)Model.OrCostoTotal;
+
     var niCulture = new CultureInfo("es-NI");
 
     var packs     = ViewBag.Packs     as List<syswb_Taller.Models.PackReparacion>     ?? new List<syswb_Taller.Models.PackReparacion>();
@@ -68,7 +81,9 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Fecha Creación</label>
-                    <input class="form-control" value="@fecha.ToString("dd/MM/yyyy")" readonly />
+                    <input class="form-control"
+                           value="@(esCreacion ? DateTime.Now.ToString("dd/MM/yyyy") : ((DateTime)Model.OrFechaCreacion).ToString("dd/MM/yyyy"))"
+                           readonly />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Costo Total</label>
@@ -119,8 +134,11 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Fecha Entrega</label>
-                    <input name="orFechaEntrega" type="date" class="form-control" 
-                           value="@(Model.OrFechaEntrega?.ToString("yyyy-MM-dd") ?? string.Empty)" required />
+                    <input name="orFechaEntrega"
+                           type="date"
+                           class="form-control"
+                           value="@fechaEntregaStr"
+                           required />
                     <div class="invalid-feedback">Fecha de entrega es obligatoria.</div>
                 </div>
 
