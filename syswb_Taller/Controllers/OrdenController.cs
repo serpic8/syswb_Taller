@@ -648,36 +648,32 @@ namespace syswb_Taller.Controllers
         public async Task<IActionResult> AgregarEntrega(int idOrden)
         {
             var orden = await _bd.Ordenes.FindAsync(idOrden);
-            if (orden == null)
-            {
-                return NotFound();
-            }
+            if (orden == null) return NotFound();
 
-            var entrega = new OrdenDetalleEntrega
+            var entrega = await _bd.OrdenDetalleEntregas
+                .FirstOrDefaultAsync(e => e.IdOrden == idOrden);
+
+            bool esCreacion = entrega == null;
+            if (esCreacion)
             {
-                IdOrden = idOrden
-            };
+                entrega = new OrdenDetalleEntrega { IdOrden = idOrden };
+            }
 
             ViewBag.Empleados = await _bd.Empleados
                 .Where(e => e.EmpActivo && e.IdRolNavigation.RTipo == "Mecánico")
                 .Include(e => e.IdPersonaNavigation)
-                .Select(e => new
-                {
+                .Select(e => new {
                     e.IdEmpleado,
                     NombreCompleto = e.IdPersonaNavigation.PNombre + " " + e.IdPersonaNavigation.PApellido
                 })
                 .ToListAsync();
 
+            ViewBag.MecanicoAsignado = esCreacion ? TempData["MecanicoTemp"] : null;
 
-            ViewBag.MecanicoAsignado = TempData["MecanicoTemp"];
-
+            ViewBag.EsCreacion = esCreacion;
 
             return View("EntregaOrden", entrega);
         }
-
-
-
-
 
 
 
@@ -686,50 +682,61 @@ namespace syswb_Taller.Controllers
         public async Task<IActionResult> AgregarPagoOrden(int idOrden)
         {
             var orden = await _bd.Ordenes
-            .Include(o => o.DetallePagoOrdens)
-            .Include(o => o.IdVehiculoNavigation)
-            .FirstOrDefaultAsync(o => o.IdOrden == idOrden);
+                .Include(o => o.DetallePagoOrdens)
+                .Include(o => o.IdVehiculoNavigation)
+                .FirstOrDefaultAsync(o => o.IdOrden == idOrden);
 
             if (orden == null)
                 return NotFound();
 
-            if (orden.OrCostoTotal == 0 || orden.DetallePagoOrdens.Any())
+            if (!orden.DetallePagoOrdens.Any())
             {
-                TempData["Error"] = orden.OrCostoTotal == 0
-                    ? "No puede pagar una orden de costo 0."
-                    : "Esta orden ya tiene un pago registrado.";
-                return RedirectToAction("Editar", new { id = idOrden });
+                if (orden.OrCostoTotal == 0)
+                {
+                    TempData["Error"] = "No puede pagar una orden de costo 0.";
+                    return RedirectToAction("Editar", new { id = idOrden });
+                }
+
+                int idCliente = orden.IdVehiculoNavigation.IdCliente;
+                ViewBag.ClienteID = idCliente;
+
+                var model = new DetallePagoOrden
+                {
+                    IdOrden = idOrden,
+                    MontoPagado = orden.OrCostoTotal
+                };
+
+                var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!int.TryParse(claimId, out var idEmpleado))
+                {
+                    TempData["Error"] = "No se pudo obtener la identidad del empleado.";
+                    return RedirectToAction("Editar", new { id = idOrden });
+                }
+                var empleado = await _bd.Empleados
+                    .Include(e => e.IdPersonaNavigation)
+                    .FirstOrDefaultAsync(e => e.IdEmpleado == idEmpleado);
+                ViewBag.EmpleadoNombre = empleado != null
+                    ? $"{empleado.IdPersonaNavigation.PNombre} {empleado.IdPersonaNavigation.PApellido}"
+                    : "Empleado no identificado";
+
+                ViewBag.FechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+                ViewBag.YaPago = false;
+
+                return View(model);
             }
-
-            int idCliente = orden.IdVehiculoNavigation.IdCliente;
-            ViewBag.ClienteID = idCliente;
-
-            var model = new DetallePagoOrden
+            else
             {
-                IdOrden = idOrden,
-                MontoPagado = orden.OrCostoTotal
-            };
+                var pago = orden.DetallePagoOrdens.First();
 
-            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(claimId, out var idEmpleado))
-            {
-                TempData["Error"] = "No se pudo obtener la identidad del empleado.";
-                return RedirectToAction("Editar", new { id = idOrden });
+                pago.IdEmpleado = pago.IdEmpleado; 
+
+                ViewBag.ClienteID = orden.IdVehiculoNavigation.IdCliente;
+                ViewBag.EmpleadoNombre = User.FindFirstValue(ClaimTypes.GivenName) + " " + User.FindFirstValue(ClaimTypes.Surname);
+                ViewBag.FechaHora = pago.FechaPago.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+                ViewBag.YaPago = true;
+                return View(pago);
             }
-
-            var empleado = await _bd.Empleados
-                .Include(e => e.IdPersonaNavigation)
-                .FirstOrDefaultAsync(e => e.IdEmpleado == idEmpleado);
-
-            ViewBag.EmpleadoNombre = empleado != null
-                ? $"{empleado.IdPersonaNavigation.PNombre} {empleado.IdPersonaNavigation.PApellido}"
-                : "Empleado no identificado";
-
-            ViewBag.FechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
-
-            return View(model);
         }
-
 
 
 

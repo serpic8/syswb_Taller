@@ -1,10 +1,20 @@
 ﻿@model syswb_Taller.Models.DetallePagoOrden
 @using System.Security.Claims
 
-@* --- Inclusión inline de Animate.css y estilos de factura --- *@
+@{
+    ViewBag.Title = "Registrar Pago";
+    string fechaHora = ViewBag.FechaHora as string ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+    var numeroFactura = "FAC-" + Model.IdOrden.ToString("D4") + "-" + DateTime.Now.Year;
+    var givenName = User.FindFirstValue(ClaimTypes.GivenName) ?? "";
+    var surname   = User.FindFirstValue(ClaimTypes.Surname)   ?? "";
+    string empleadoNombre = string.IsNullOrEmpty(givenName) && string.IsNullOrEmpty(surname)
+        ? "Empleado no identificado"
+        : $"{givenName} {surname}";
+    bool yaPagado = ViewBag.YaPago == true;
+}
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" integrity="sha512-b7Q+XU+PsnVkffOQgTjneFMXGKDSrGHZiEccpJmJHGkjlCNdZxH79ResCi1cdA3YbUUJF6X0Y+hZ7XWoxx+G6g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
-  /* Estilos de factura embebidos */
   .invoice-header {
     background: linear-gradient(135deg, #0d6efd, #6610f2);
     color: #fff;
@@ -21,97 +31,118 @@
     .btn, a.btn { display: none !important; }
   }
 </style>
-@{
-    ViewBag.Title = "Registrar Pago";
-    string fechaHora = ViewBag.FechaHora as string ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm");
-
-    var numeroFactura = "FAC-" + Model.IdOrden.ToString("D4") + "-" + DateTime.Now.Year;
-
-    var givenName = User.FindFirstValue(ClaimTypes.GivenName) ?? string.Empty;
-    var surname   = User.FindFirstValue(ClaimTypes.Surname)   ?? string.Empty;
-    string empleadoNombre = string.IsNullOrEmpty(givenName) && string.IsNullOrEmpty(surname)
-        ? "Empleado no identificado"
-        : $"{givenName} {surname}";
-}
 
 @section Header { }
 @section Footer { }
 
-<div class="container animate__animated animate__fadeIn">
-  <div class="invoice-header d-flex justify-content-between align-items-center mb-4">
-      <h4>@ViewBag.Title</h4>
-      <span class="text-light">@fechaHora</span>
-  </div>
-
-  <div class="invoice-body mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>Registrar Pago de Orden #@Model.IdOrden</h4>
-        <div class="text-end">
-            <label class="form-label mb-0">Factura No.</label>
-            <div class="fw-bold">@numeroFactura</div>
-        </div>
-    </div>
-
-    @if (TempData.ContainsKey("Error"))
-    {
-        <div class="alert alert-warning animate__animated animate__shakeX">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i>@TempData["Error"]
-        </div>
-    }
-
-    <form asp-controller="Orden" asp-action="AgregarPagoOrden" method="post" novalidate class="needs-validation animate__animated animate__fadeInUp">
-        @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="IdOrden" />
-        <input type="hidden" name="idCliente" value="@ViewBag.ClienteID" />
-        @Html.AntiForgeryToken()
-
-        <div class="mb-3">
-            <label class="form-label">Monto a pagar</label>
-            <input type="text" class="form-control border-primary"
-                   value="@Model.MontoPagado.ToString("C")" readonly />
-            <input type="hidden" asp-for="MontoPagado" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Forma de Pago</label>
-            <div>
-                @foreach (var fp in new[] { "Contado", "Tarjeta", "Transferencia" })
-                {
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input"
-                               type="radio"
-                               asp-for="MetodoPago"
-                               value="@fp"
-                               required />
-                        <label class="form-check-label">@fp</label>
-                    </div>
-                }
+@if (yaPagado)
+{
+    <div class="container animate__animated animate__fadeIn">
+      <div class="invoice-header d-flex justify-content-between align-items-center mb-4">
+          <h4>Pago Registrado</h4>
+          <span class="text-light">@fechaHora</span>
+      </div>
+      <div class="invoice-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5>Factura Orden #@Model.IdOrden</h5>
+            <div class="text-end">
+                <label class="form-label mb-0">Factura No.</label>
+                <div class="fw-bold">@numeroFactura</div>
             </div>
-            <div class="invalid-feedback d-block">Seleccione una forma de pago.</div>
         </div>
+        <dl class="row">
+          <dt class="col-sm-3">Monto Pagado</dt>
+          <dd class="col-sm-9">@Model.MontoPagado.ToString("C")</dd>
 
-        <div class="mb-3">
-            <label asp-for="Observaciones" class="form-label">Detalles del Pago</label>
-            <textarea asp-for="Observaciones" class="form-control" rows="3"></textarea>
-        </div>
+          <dt class="col-sm-3">Método de Pago</dt>
+          <dd class="col-sm-9">@Model.MetodoPago</dd>
 
-        <div class="mb-3">
-            <label class="form-label">Empleado que registra</label>
-            <input type="text" class="form-control bg-light" value="@empleadoNombre" readonly />
-            <input type="hidden" asp-for="IdEmpleado" />
-        </div>
+          <dt class="col-sm-3">Detalles</dt>
+          <dd class="col-sm-9">@Model.Observaciones</dd>
+
+          <dt class="col-sm-3">Registrado por</dt>
+          <dd class="col-sm-9">@empleadoNombre</dd>
+        </dl>
 
         <div class="text-end">
-            <button type="submit" class="btn btn-gradient-primary animate__animated animate__pulse">
-                <i class="bi bi-credit-card-fill me-1"></i> Confirmar Pago
-            </button>
-            <a asp-action="Editar" asp-controller="Orden" asp-route-id="@Model.IdOrden" class="btn btn-secondary ms-2">
-                Cancelar
-            </a>
+          <button class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Imprimir PDF
+          </button>
+          <a asp-action="Editar" asp-controller="Orden" asp-route-id="@Model.IdOrden" class="btn btn-secondary ms-2">
+            Volver
+          </a>
         </div>
-    </form>
-  </div>
-</div>
+      </div>
+    </div>
+}
+else
+{
+    <div class="container animate__animated animate__fadeIn">
+      <div class="invoice-header d-flex justify-content-between align-items-center mb-4">
+          <h4>@ViewBag.Title</h4>
+          <span class="text-light">@fechaHora</span>
+      </div>
+      <div class="invoice-body mb-4">
+        @if (TempData.ContainsKey("Error"))
+        {
+            <div class="alert alert-warning animate__animated animate__shakeX">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>@TempData["Error"]
+            </div>
+        }
+
+        <form asp-controller="Orden" asp-action="AgregarPagoOrden" method="post" novalidate class="needs-validation animate__animated animate__fadeInUp">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="IdOrden" />
+            <input type="hidden" name="idCliente" value="@ViewBag.ClienteID" />
+
+            <div class="mb-3">
+                <label class="form-label">Monto a pagar</label>
+                <input type="text" class="form-control border-primary"
+                       value="@Model.MontoPagado.ToString("C")" readonly />
+                <input type="hidden" asp-for="MontoPagado" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Forma de Pago</label>
+                <div>
+                    @foreach (var fp in new[] { "Contado", "Tarjeta", "Transferencia" })
+                    {
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input"
+                                   type="radio"
+                                   asp-for="MetodoPago"
+                                   value="@fp"
+                                   required />
+                            <label class="form-check-label">@fp</label>
+                        </div>
+                    }
+                </div>
+                <div class="invalid-feedback d-block">Seleccione una forma de pago.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Observaciones" class="form-label">Detalles del Pago</label>
+                <textarea asp-for="Observaciones" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Empleado que registra</label>
+                <input type="text" class="form-control bg-light" value="@empleadoNombre" readonly />
+                <input type="hidden" asp-for="IdEmpleado" />
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-gradient-primary animate__animated animate__pulse">
+                    <i class="bi bi-credit-card-fill me-1"></i> Confirmar Pago
+                </button>
+                <a asp-action="Editar" asp-controller="Orden" asp-route-id="@Model.IdOrden" class="btn btn-secondary ms-2">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+      </div>
+    </div>
+}
 
 @section Scripts {
     <script>
