@@ -600,7 +600,7 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@informe_tecnico", informe_tecnico));
             await cmd.ExecuteNonQueryAsync();
 
-            return RedirectToAction("DetallesEntrega", new { idOrden });
+            return RedirectToAction("Editar", new { id = idOrden });
         }
 
 
@@ -659,16 +659,29 @@ namespace syswb_Taller.Controllers
                 entrega = new OrdenDetalleEntrega { IdOrden = idOrden };
             }
 
-            ViewBag.Empleados = await _bd.Empleados
-                .Where(e => e.EmpActivo && e.IdRolNavigation.RTipo == "Mecánico")
+            ViewBag.EmpleadosActivos = await _bd.Empleados
+                .Where(e => e.EmpActivo)
                 .Include(e => e.IdPersonaNavigation)
-                .Select(e => new {
+                .Select(e => new
+                {
                     e.IdEmpleado,
                     NombreCompleto = e.IdPersonaNavigation.PNombre + " " + e.IdPersonaNavigation.PApellido
                 })
                 .ToListAsync();
 
-            ViewBag.MecanicoAsignado = esCreacion ? TempData["MecanicoTemp"] : null;
+            ViewBag.Mecanicos = await _bd.Empleados
+                .Where(e => e.EmpActivo && e.IdRolNavigation.RTipo == "Mecánico")
+                .Include(e => e.IdPersonaNavigation)
+                .Select(e => new
+                {
+                    e.IdEmpleado,
+                    NombreCompleto = e.IdPersonaNavigation.PNombre + " " + e.IdPersonaNavigation.PApellido
+                })
+                .ToListAsync();
+
+            ViewBag.MecanicoAsignado = esCreacion
+                ? TempData["MecanicoTemp"]
+                : entrega.MecanicoResponsable;
 
             ViewBag.EsCreacion = esCreacion;
 
@@ -676,8 +689,6 @@ namespace syswb_Taller.Controllers
         }
 
 
-
-        // OrdenController.cs
         [HttpGet]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarPagoOrden(int idOrden)
