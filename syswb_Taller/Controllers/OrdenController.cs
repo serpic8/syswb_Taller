@@ -600,7 +600,7 @@ namespace syswb_Taller.Controllers
             cmd.Parameters.Add(new SqlParameter("@informe_tecnico", informe_tecnico));
             await cmd.ExecuteNonQueryAsync();
 
-            return RedirectToAction("Editar", new { id = idOrden });
+            return RedirectToAction("DetallesEntrega", new { idOrden });
         }
 
 
@@ -783,7 +783,36 @@ namespace syswb_Taller.Controllers
 
             await cmd.ExecuteNonQueryAsync();
 
-            return RedirectToAction("Editar", new { id = idOrden });
+            return RedirectToAction("DetallesPago", new { idOrden });
+        }
+
+        // GET: Orden/DetallesEntrega/5
+        [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecánico")]
+        public async Task<IActionResult> DetallesEntrega(int idOrden)
+        {
+            var entrega = await _bd.OrdenDetalleEntregas
+                .FirstOrDefaultAsync(e => e.IdOrden == idOrden);
+            if (entrega == null)
+                // si no existe, que vaya al formulario de crear
+                return RedirectToAction("AgregarEntrega", new { idOrden });
+
+            return View("DetallesEntrega", entrega);
+        }
+
+
+
+        // GET: Orden/DetallesPago/5
+        [HttpGet]
+        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
+        public async Task<IActionResult> DetallesPago(int idOrden)
+        {
+            var pago = await _bd.DetallePagoOrdens
+                .FirstOrDefaultAsync(p => p.IdOrden == idOrden);
+            if (pago == null)
+                return RedirectToAction("AgregarPagoOrden", new { idOrden });
+
+            return View("DetallesPago", pago);
         }
 
 

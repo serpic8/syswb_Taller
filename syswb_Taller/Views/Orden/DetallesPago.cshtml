@@ -1,0 +1,68 @@
+﻿@model syswb_Taller.Models.DetallePagoOrden
+@using System.Security.Claims
+
+@{
+    ViewBag.Title = "Detalle de Pago";
+    // Fecha/hora de impresión
+    string fechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+    // Número de factura igual que en tu view de creación
+    var numeroFactura = "FAC-" + Model.IdOrden.ToString("D4") + "-" + DateTime.Now.Year;
+    // Nombre de empleado desde Claims
+    var givenName = User.FindFirstValue(ClaimTypes.GivenName)  ?? string.Empty;
+    var surname   = User.FindFirstValue(ClaimTypes.Surname)    ?? string.Empty;
+    string empleadoNombre = string.IsNullOrEmpty(givenName) && string.IsNullOrEmpty(surname)
+        ? "Empleado no identificado"
+        : $"{givenName} {surname}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4>@ViewBag.Title</h4>
+    <span class="text-muted">@fechaHora</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Pago de Orden #@Model.IdOrden</h4>
+    <div class="text-end">
+        <label class="form-label mb-0">Factura No.</label>
+        <div class="fw-bold">@numeroFactura</div>
+    </div>
+</div>
+
+@if (TempData.ContainsKey("Error"))
+{
+    <div class="alert alert-warning">@TempData["Error"]</div>
+}
+
+<dl class="row">
+    <dt class="col-sm-3">Monto Pagado</dt>
+    <dd class="col-sm-9">@Model.MontoPagado.ToString("C")</dd>
+
+    <dt class="col-sm-3">Método de Pago</dt>
+    <dd class="col-sm-9">@Model.MetodoPago</dd>
+
+    <dt class="col-sm-3">Observaciones</dt>
+    <dd class="col-sm-9">@Html.DisplayFor(m => m.Observaciones)</dd>
+
+    <dt class="col-sm-3">Registrado por</dt>
+    <dd class="col-sm-9">@empleadoNombre</dd>
+
+    <dt class="col-sm-3">Fecha de Registro</dt>
+    <dd class="col-sm-9">@Model.FechaPago.ToString("dd/MM/yyyy HH:mm")</dd>
+</dl>
+
+<div class="text-end">
+    <button type="button" class="btn btn-secondary" onclick="window.print();">
+        <i class="bi bi-printer"></i> Imprimir
+    </button>
+    <a asp-action="Editar" asp-controller="Orden" asp-route-id="@Model.IdOrden" class="btn btn-outline-secondary ms-2">
+        Volver
+    </a>
+</div>
+
+@section Styles {
+    <style>
+    @@media print {
+      .btn, a.btn { display: none !important; }
+    }
+    </style>
+}
