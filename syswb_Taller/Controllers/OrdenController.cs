@@ -229,7 +229,7 @@ namespace syswb_Taller.Controllers
             ViewBag.ClienteNombre = cliente.IdPersonaNavigation.PNombre + " " + cliente.IdPersonaNavigation.PApellido;
             ViewBag.Matricula = vehiculo.VhMatricula;
 
-            ViewBag.Estados = new[] { "Pendiente", "En Proceso", "Entregado", "Finalizado" };
+            ViewBag.Estados = new[] { "Pendiente", "En Proceso", "Finalizado" };
             ViewBag.Tipos = new[] { "Mantenimiento", "Reparación", "Inspección" };
             ViewBag.Packs = await _bd.PackReparaciones.Where(p => p.PckActivo).ToListAsync();
             ViewBag.Productos = await _bd.ProductoRepuestos.Where(p => p.PrActivo).ToListAsync();
@@ -677,6 +677,7 @@ namespace syswb_Taller.Controllers
 
 
 
+        // OrdenController.cs
         [HttpGet]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> AgregarPagoOrden(int idOrden)
@@ -689,56 +690,48 @@ namespace syswb_Taller.Controllers
             if (orden == null)
                 return NotFound();
 
-            if (!orden.DetallePagoOrdens.Any())
+            if (orden.OrCostoTotal == 0)
             {
-                if (orden.OrCostoTotal == 0)
-                {
-                    TempData["Error"] = "No puede pagar una orden de costo 0.";
-                    return RedirectToAction("Editar", new { id = idOrden });
-                }
+                TempData["Error"] = "No puede pagar una orden de costo 0.";
+                return RedirectToAction("Editar", new { id = idOrden });
+            }
 
-                int idCliente = orden.IdVehiculoNavigation.IdCliente;
-                ViewBag.ClienteID = idCliente;
+            bool yaPago = orden.DetallePagoOrdens.Any();
+            ViewBag.YaPago = yaPago;
 
-                var model = new DetallePagoOrden
+            ViewBag.ClienteID = orden.IdVehiculoNavigation.IdCliente;
+
+            DetallePagoOrden model;
+            if (!yaPago)
+            {
+                model = new DetallePagoOrden
                 {
                     IdOrden = idOrden,
                     MontoPagado = orden.OrCostoTotal
                 };
-
-                var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (!int.TryParse(claimId, out var idEmpleado))
-                {
-                    TempData["Error"] = "No se pudo obtener la identidad del empleado.";
-                    return RedirectToAction("Editar", new { id = idOrden });
-                }
-                var empleado = await _bd.Empleados
-                    .Include(e => e.IdPersonaNavigation)
-                    .FirstOrDefaultAsync(e => e.IdEmpleado == idEmpleado);
-                ViewBag.EmpleadoNombre = empleado != null
-                    ? $"{empleado.IdPersonaNavigation.PNombre} {empleado.IdPersonaNavigation.PApellido}"
-                    : "Empleado no identificado";
-
-                ViewBag.FechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
-                ViewBag.YaPago = false;
-
-                return View(model);
             }
             else
             {
-                var pago = orden.DetallePagoOrdens.First();
-
-                pago.IdEmpleado = pago.IdEmpleado; 
-
-                ViewBag.ClienteID = orden.IdVehiculoNavigation.IdCliente;
-                ViewBag.EmpleadoNombre = User.FindFirstValue(ClaimTypes.GivenName) + " " + User.FindFirstValue(ClaimTypes.Surname);
-                ViewBag.FechaHora = pago.FechaPago.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm");
-                ViewBag.YaPago = true;
-                return View(pago);
+                model = orden.DetallePagoOrdens.First();
             }
+
+            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(claimId, out var idEmpleado))
+            {
+                TempData["Error"] = "No se pudo obtener la identidad del empleado.";
+                return RedirectToAction("Editar", new { id = idOrden });
+            }
+            var empleado = await _bd.Empleados
+                .Include(e => e.IdPersonaNavigation)
+                .FirstOrDefaultAsync(e => e.IdEmpleado == idEmpleado);
+            ViewBag.EmpleadoNombre = empleado != null
+                ? $"{empleado.IdPersonaNavigation.PNombre} {empleado.IdPersonaNavigation.PApellido}"
+                : "Empleado no identificado";
+
+            ViewBag.FechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+
+            return View(model);
         }
-
-
 
 
 
