@@ -3,19 +3,34 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using Microsoft.EntityFrameworkCore;
+using syswb_Taller.Models;
 
 namespace syswb_Taller.Controllers
 {
     //[Authorize] es necesario para hacer lo de los roles
     public class MenuController : Controller
     {
-        [HttpGet]
-        public IActionResult Menu()
+        private readonly BdTallerContext _bdTallerContext;
+
+        public MenuController(BdTallerContext bdTallerContext)
         {
-            // La vista leerá User.Identity y DateTime.Now directamente.
-            return View();
+            _bdTallerContext = bdTallerContext;
         }
 
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Menu()
+        {
+            bool cajaAbierta = await _bdTallerContext.CajaDiaria
+                .AsNoTracking()
+                .AnyAsync(c => c.CjCierre == null);
+
+            ViewBag.CajaAbierta = cajaAbierta;
+
+            return View();
+        }
         // Ejemplos de acciones a las que apuntan los botones:
         public IActionResult Orden() => RedirectToAction("Lista", "Orden");
         public IActionResult Presupuesto() => RedirectToAction("Lista", "Presupuesto");
