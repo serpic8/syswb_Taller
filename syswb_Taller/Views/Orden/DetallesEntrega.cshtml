@@ -2,9 +2,13 @@
 
 @{
     ViewBag.Title = "Detalle de Entrega";
-    string fechaHora = Model.FechaEntrega?.ToString("dd/MM/yyyy HH:mm") 
+    string fechaHora = Model.FechaEntrega.ToString("dd/MM/yyyy HH:mm") 
                        ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm");
 }
+
+@section Header { }
+@section Footer { }
+
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4>@ViewBag.Title</h4>
@@ -22,7 +26,7 @@
     <dd class="col-sm-9">@Model.TelefonoRecibe</dd>
 
     <dt class="col-sm-3">Es propietario</dt>
-    <dd class="col-sm-9">@ (Model.EsPropietario ? "Sí" : "No")</dd>
+    <dd class="col-sm-9">@(Model.EsPropietario ? "Sí" : "No")</dd>
 
     <dt class="col-sm-3">Entregado por (empleado)</dt>
     <dd class="col-sm-9">@Model.EntregadoPor</dd>
@@ -45,7 +49,7 @@
 
 @section Styles {
     <style>
-    @media print {
+    @@media print {
       .btn, a.btn { display: none !important; }
     }
     </style>

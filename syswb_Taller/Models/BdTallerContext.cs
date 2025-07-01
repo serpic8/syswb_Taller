@@ -216,19 +216,38 @@ public partial class BdTallerContext : DbContext
 
         modelBuilder.Entity<OrdenDetalleEntrega>(entity =>
         {
-            entity.HasKey(e => e.IdEntrega).HasName("PK__OrdenDet__6CA5A98823261D0B");
+            entity.ToTable("OrdenDetalle_Entrega");
 
-            entity.HasOne(d => d.EntregadoPorNavigation).WithMany(p => p.OrdenDetalleEntregaEntregadoPorNavigations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__OrdenDeta__entre__7B5B524B");
+            entity.HasKey(e => e.IdEntrega).HasName("PK__OrdenDet__6CA5A988...");
 
-            entity.HasOne(d => d.IdOrdenNavigation).WithMany(p => p.OrdenDetalleEntregas)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__OrdenDeta__idOrd__7A672E12");
+            entity.Property(e => e.IdEntrega).HasColumnName("idEntrega");
+            entity.Property(e => e.IdOrden).HasColumnName("idOrden");
+            entity.Property(e => e.RecibidoPor).HasColumnName("recibido_por");
+            entity.Property(e => e.TelefonoRecibe).HasColumnName("telefono_recibe");
+            entity.Property(e => e.EsPropietario).HasColumnName("es_propietario");
+            entity.Property(e => e.EntregadoPor).HasColumnName("entregado_por");
+            entity.Property(e => e.FechaEntrega).HasColumnName("fecha_entrega");
+            entity.Property(e => e.OrdenEntrega).HasColumnName("orden_entrega");
+            entity.Property(e => e.MecanicoResponsable).HasColumnName("mecanico_responsable");
+            entity.Property(e => e.InformeTecnico).HasColumnName("informe_tecnico");
 
-            entity.HasOne(d => d.MecanicoResponsableNavigation).WithMany(p => p.OrdenDetalleEntregaMecanicoResponsableNavigations)
+            entity.HasOne(d => d.EntregadoPorNavigation)
+                .WithMany(p => p.OrdenDetalleEntregaEntregadoPorNavigations)
+                .HasForeignKey(d => d.EntregadoPor)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__OrdenDeta__mecan__7C4F7684");
+                .HasConstraintName("FK__OrdenDeta__entre__...");
+
+            entity.HasOne(d => d.IdOrdenNavigation)
+                .WithMany(p => p.OrdenDetalleEntregas)
+                .HasForeignKey(d => d.IdOrden)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__OrdenDeta__idOrd__...");
+
+            entity.HasOne(d => d.MecanicoResponsableNavigation)
+                .WithMany(p => p.OrdenDetalleEntregaMecanicoResponsableNavigations)
+                .HasForeignKey(d => d.MecanicoResponsable)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__OrdenDeta__mecan__...");
         });
 
         modelBuilder.Entity<OrdenDetallePack>(entity =>
