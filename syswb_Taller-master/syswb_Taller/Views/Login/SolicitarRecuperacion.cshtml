@@ -1,0 +1,132 @@
+﻿@{
+    ViewBag.Title = "Recuperar Contraseña";
+}
+
+@section Header { }
+@section Footer { }
+
+@section Styles {
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #76d6ee 0%, #121bdf 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .recovery-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            padding: 3rem 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+            width: 90vw;
+            max-width: 500px;
+            margin: auto; /* CENTRAR HORIZONTAL */
+            text-align: center; /* CENTRAR TEXTO */
+        }
+
+            .recovery-wrapper h3 {
+                margin-bottom: 1.5rem;
+                color: #da8a3b;
+                font-weight: 600;
+            }
+
+        .form-floating > .form-control {
+            border-radius: .5rem;
+            text-align: center; /* CENTRAR TEXTO INPUT */
+        }
+
+            .form-floating > .form-control:focus {
+                border-color: #0097cc;
+                box-shadow: 0 0 0 .2rem rgba(0,151,204,0.25);
+            }
+
+        .btn-send {
+            background: #0097cc;
+            border-radius: .5rem;
+            padding: .75rem;
+            font-size: 1.1rem;
+            transition: background .3s;
+        }
+
+            .btn-send:hover {
+                background: #007bb3;
+            }
+
+        .recovery-footer {
+            margin-top: 1rem;
+        }
+
+            .recovery-footer a {
+                color: #0097cc;
+                font-weight: 500;
+                text-decoration: none;
+            }
+
+        .alert {
+            width: 100%;
+            text-align: center; /* CENTRAR TEXTO MENSAJES */
+        }
+    </style>
+}
+
+<div class="recovery-wrapper">
+    <h3><i class="bi bi-envelope-arrow-up me-2"></i>Recuperar Contraseña</h3>
+
+    <form asp-action="SolicitarRecuperacion" method="post" novalidate>
+        @Html.AntiForgeryToken()
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@err.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        @if (ViewBag.Mensaje != null)
+        {
+            <div class="alert alert-info">
+                @Html.Raw(ViewBag.Mensaje)
+            </div>
+        }
+
+        <div class="form-floating mb-3">
+            <input type="text" name="empUsuario" id="empUsuario" class="form-control" placeholder="Nombre de usuario" required />
+            <label for="empUsuario"><i class="bi bi-person-circle me-2"></i>Nombre de Usuario</label>
+        </div>
+
+        <div class="d-grid mb-2">
+            <button type="submit" class="btn btn-send text-white">
+                <i class="bi bi-send-fill me-2"></i>Enviar enlace
+            </button>
+        </div>
+    </form>
+
+    <div class="recovery-footer">
+        <a asp-controller="Login" asp-action="Login"><i class="bi bi-arrow-left me-1"></i>Volver al inicio de sesión</a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $("form").on("submit", function (e) {
+            var u = $("#empUsuario").val().trim();
+            if (!u) {
+                alert("Por favor, ingrese su nombre de usuario.");
+                e.preventDefault();
+            }
+        });
+    </script>
+}
