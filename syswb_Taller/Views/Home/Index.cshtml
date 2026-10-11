@@ -1,0 +1,20 @@
+@{
+    ViewData["Title"] = "Inicio";
+}
+
+<section class="welcome-page">
+    <div class="welcome-card">
+        <div class="welcome-icon"><i class="bi bi-wrench-adjustable-circle-fill" aria-hidden="true"></i></div>
+        <p class="welcome-eyebrow">GESTIÓN OPERATIVA</p>
+        <h1>Todo el taller, en un solo lugar.</h1>
+        <p class="welcome-copy">Administra órdenes de trabajo, clientes, vehículos e inventario desde una plataforma sencilla.</p>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn btn-primary btn-lg" asp-controller="Menu" asp-action="Menu"><i class="bi bi-grid me-2" aria-hidden="true"></i>Ir al menú principal</a>
+        }
+        else
+        {
+            <a class="btn btn-primary btn-lg" asp-controller="Login" asp-action="Login"><i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i>Iniciar sesión</a>
+        }
+    </div>
+</section>
