@@ -1,0 +1,234 @@
+﻿@{
+    ViewBag.Title = "Login";
+}
+
+@section Header { }
+@section Footer { }
+
+@section Styles {
+    <style>
+        /* ---- Reset básico ---- */
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #f18316 0%, #0097cc 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ---- Contenedor principal ---- */
+        .login-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 90vw;
+            max-width: 1200px;
+            height: 80vh;
+            box-shadow: 0 0 40px rgba(0,0,0,0.2);
+            border-radius: 1rem;
+            overflow: hidden;
+            background: white;
+        }
+
+        /* ---- Panel izquierdo ilustrativo ---- */
+        .login-left {
+            background: url('https://sp-ao.shortpixel.ai/client/to_auto,q_glossy,ret_img/https://www.autosys.mx/wp-content/uploads/2016/10/slidesofttallermecanico.jpg') center center / cover no-repeat;
+            position: relative;
+        }
+        .login-left::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0,151,204,0.75);
+        }
+        .login-left .content {
+            position: relative;
+            color: white;
+            text-align: center;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 2rem;
+        }
+        .login-left .content h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        .login-left .content p {
+            font-size: 1.2rem;
+            line-height: 1.4;
+        }
+
+        /* ---- Panel derecho formulario ---- */
+        .login-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: #fefefe;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+        }
+        .login-card h3 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #da8a3b;
+            font-weight: 600;
+        }
+
+        /* ---- Inputs flotantes ---- */
+        .form-floating > .form-control {
+            border-radius: .5rem;
+        }
+        .form-floating > .form-control:focus {
+            border-color: #0097cc;
+            box-shadow: 0 0 0 .2rem rgba(0,151,204,0.25);
+        }
+        .form-floating > label {
+            padding-left: .75rem;
+        }
+
+        /* ---- Botón login ---- */
+        .btn-login {
+            background: #0097cc;
+            border-radius: .5rem;
+            padding: .75rem;
+            font-size: 1.1rem;
+            transition: background .3s;
+        }
+        .btn-login:hover {
+            background: #007bb3;
+        }
+
+        /* ---- Pie del formulario ---- */
+        .login-footer {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: .9rem;
+        }
+        .login-footer a {
+            color: #0097cc;
+            font-weight: 500;
+        }
+
+        /* ---- Responsive ---- */
+        @@media (max-width: 992px) {
+            .login-wrapper {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .login-left {
+                display: none;
+            }
+            body {
+                background: #f5f5f5;
+            }
+        }
+    </style>
+}
+
+<div class="login-wrapper">
+    <!-- Lado izquierdo ilustrativo -->
+    <div class="login-left">
+        <div class="content">
+            <h1>Bienvenido</h1>
+            <p>Gestiona tus órdenes, clientes y mucho más de forma sencilla.</p>
+        </div>
+    </div>
+
+    <!-- Lado derecho formulario -->
+    <div class="login-right">
+        <div class="login-card">
+            <h3><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión</h3>
+            <form id="loginForm" asp-action="Login" method="post" novalidate>
+                @Html.AntiForgeryToken()
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger">
+                        @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <div>@err.ErrorMessage</div>
+                        }
+                    </div>
+                }
+
+                <div class="form-floating mb-3">
+                    <input name="username" class="form-control" id="username" placeholder="Usuario" required />
+                    <label for="username"><i class="bi bi-person-circle me-2"></i>Usuario</label>
+                </div>
+
+                <div class="form-floating mb-4">
+                    <input name="password" type="password" class="form-control" id="password" placeholder="Contraseña" required />
+                    <label for="password"><i class="bi bi-key-fill me-2"></i>Contraseña</label>
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button id="submitBtn" type="submit" class="btn btn-login text-white">
+                        <i class="bi bi-door-open-fill me-2"></i>Ingresar
+                    </button>
+                </div>
+                <a asp-controller="Login" asp-action="SolicitarRecuperacion">¿Olvidaste tu contraseña?</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script>
+        (function(){
+            const maxAttempts = 3;
+            const lockDuration = 5 * 60 * 1000; // 5 minutos
+            const now = Date.now();
+            let lockUntil = parseInt(localStorage.getItem('loginLockUntil')||'0');
+            let attempts = parseInt(localStorage.getItem('loginAttempts')||'0');
+
+            function disableForm() {
+                $('#username, #password, #submitBtn').prop('disabled', true);
+                $('<div class="alert alert-warning mt-3">Has excedido el número de intentos. Intenta de nuevo después.</div>')
+                    .insertBefore('#loginForm');
+            }
+
+            // Si estamos en periodo de bloqueo
+            if (now < lockUntil) {
+                disableForm();
+                return;
+            } else if (lockUntil) {
+                // Si expiró el bloqueo, resetear
+                localStorage.removeItem('loginLockUntil');
+                localStorage.removeItem('loginAttempts');
+                attempts = 0;
+            }
+
+            // Al cargar con error de validación, incrementar intentos
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <text>
+                attempts++;
+                localStorage.setItem('loginAttempts', attempts);
+                if (attempts >= maxAttempts) {
+                    const until = Date.now() + lockDuration;
+                    localStorage.setItem('loginLockUntil', until);
+                    disableForm();
+                }
+                </text>
+            }
+
+            // Validación en cliente
+            $('form').on('submit', function(e){
+                var u = $('#username').val().trim();
+                var p = $('#password').val().trim();
+                if (!u || !p) {
+                    alert("Por favor, ingresa usuario y contraseña.");
+                    e.preventDefault();
+                }
+            });
+        })();
+    </script>
+}
