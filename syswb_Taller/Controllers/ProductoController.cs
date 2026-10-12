@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +20,6 @@ namespace syswb_Taller.Controllers
         }
 
 
-        #region Lista y Crear
         private async Task<bool> ObtenerActivo(int idProducto)
         {
             var connString = _bdTallerContext.Database.GetConnectionString();
@@ -209,7 +208,7 @@ namespace syswb_Taller.Controllers
             );
             return RedirectToAction(nameof(Lista));
         }
-        #endregion
+        
 
 
         #region Stock y Eliminar Stock

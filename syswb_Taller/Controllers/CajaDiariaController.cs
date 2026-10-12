@@ -16,13 +16,11 @@ namespace syswb_Taller.Controllers
             _bdTallerContext = bdTallerContext;
         }
 
-        // POST: Abrir Caja
         [HttpPost]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AbrirCaja(int? anio, int? mes)
         {
-            // Verificar si ya existe una caja para hoy
             bool yaExiste = await _bdTallerContext.CajaDiaria
                 .AnyAsync(x => x.CjFecha == DateOnly.FromDateTime(DateTime.Today));
 
@@ -42,7 +40,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction(nameof(Lista), new { anio = y, mes = m });
         }
 
-        // POST: Cerrar Caja
         [HttpPost]
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         [ValidateAntiForgeryToken]
@@ -58,8 +55,6 @@ namespace syswb_Taller.Controllers
             return RedirectToAction(nameof(Lista), new { anio = y, mes = m });
         }
 
-        // GET: Resumen de Caja Diaria
-        // GET: Resumen de Caja Diaria
         [Authorize(Roles = "Administrador, Cajero, Supervisor")]
         public async Task<IActionResult> Lista(int? anio, int? mes)
         {
@@ -115,7 +110,6 @@ namespace syswb_Taller.Controllers
             using var conn = _bdTallerContext.Database.GetDbConnection();
             await conn.OpenAsync();
 
-            // 1) Detalle de movimientos para el día
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = "Get_CajaDiariaDetalleFinanzas";
@@ -127,7 +121,6 @@ namespace syswb_Taller.Controllers
                 dtDetail.Load(reader);
             }
 
-            // 2) Resumen de ingresos/egresos por día PARA ESA MISMA FECHA
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = "Get_CajaDiariaIngresosEgresosPorDia";

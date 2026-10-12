@@ -1,186 +1,318 @@
-﻿@{
-    ViewBag.Title = "Login";
+@{
+    Layout = null;
 }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iniciar Sesión - syswb_Taller</title>
 
-@section Header { }
-@section Footer { }
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-@section Styles {
     <style>
-        /* ---- Reset básico ---- */
+        /* ---- Reset y Tipografía ---- */
         html, body {
             height: 100%;
             margin: 0;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
         }
+
         body {
             background: linear-gradient(135deg, #f18316 0%, #0097cc 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 1.5rem;
         }
 
-        /* ---- Contenedor principal ---- */
+        @@keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* ---- Contenedor Principal (Tarjeta de Login) ---- */
         .login-wrapper {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            width: 90vw;
-            max-width: 1200px;
-            height: 80vh;
-            box-shadow: 0 0 40px rgba(0,0,0,0.2);
-            border-radius: 1rem;
+            grid-template-columns: 1.2fr 1fr;
+            width: 100%;
+            max-width: 1050px;
+            min-height: 600px;
+            height: 75vh;
+            max-height: 750px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+            border-radius: 1.25rem;
             overflow: hidden;
             background: white;
+            transition: all 0.4s ease;
         }
 
-        /* ---- Panel izquierdo ilustrativo ---- */
+        /* ---- Panel Izquierdo (Imagen e Ilustración) ---- */
         .login-left {
-            background: url('https://sp-ao.shortpixel.ai/client/to_auto,q_glossy,ret_img/https://www.autosys.mx/wp-content/uploads/2016/10/slidesofttallermecanico.jpg') center center / cover no-repeat;
+            background: linear-gradient(135deg, rgba(0, 151, 204, 0.85) 0%, rgba(241, 131, 22, 0.85) 100%), 
+                        url('https://sp-ao.shortpixel.ai/client/to_auto,q_glossy,ret_img/https://www.autosys.mx/wp-content/uploads/2016/10/slidesofttallermecanico.jpg') center center / cover no-repeat;
             position: relative;
-        }
-        .login-left::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: rgba(0,151,204,0.75);
-        }
-        .login-left .content {
-            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
             color: white;
             text-align: center;
-            top: 50%;
-            transform: translateY(-50%);
-            padding: 2rem;
-        }
-        .login-left .content h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        .login-left .content p {
-            font-size: 1.2rem;
-            line-height: 1.4;
         }
 
-        /* ---- Panel derecho formulario ---- */
+        .login-left .content {
+            z-index: 2;
+            max-width: 480px;
+        }
+
+        .login-left h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .login-left p {
+            font-size: 1.25rem;
+            font-weight: 300;
+            line-height: 1.6;
+            opacity: 0.95;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        /* ---- Panel Derecho (Formulario) ---- */
         .login-right {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
-            background: #fefefe;
+            padding: 3.5rem 2.5rem;
+            background: #ffffff;
+            position: relative;
         }
+
         .login-card {
             width: 100%;
-            max-width: 380px;
+            max-width: 360px;
         }
+
         .login-card h3 {
             text-align: center;
-            margin-bottom: 1.5rem;
-            color: #da8a3b;
-            font-weight: 600;
+            margin-bottom: 2rem;
+            color: #1e293b;
+            font-weight: 700;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
         }
 
-        /* ---- Inputs flotantes ---- */
-        .form-floating > .form-control {
-            border-radius: .5rem;
+        .login-card h3 i {
+            color: #0097cc;
         }
+
+        /* ---- Inputs Flotantes Estilizados ---- */
+        .form-floating {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-floating > .form-control {
+            border: 1.5px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            padding: 1.25rem 1rem;
+            height: calc(3.5rem + 2px);
+            transition: all 0.2s ease-in-out;
+        }
+
         .form-floating > .form-control:focus {
             border-color: #0097cc;
-            box-shadow: 0 0 0 .2rem rgba(0,151,204,0.25);
+            box-shadow: 0 0 0 4px rgba(0, 151, 204, 0.15);
+            color: #0f172a;
         }
+
         .form-floating > label {
-            padding-left: .75rem;
+            padding: 1rem 0.75rem;
+            color: #64748b;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
         }
 
-        /* ---- Botón login ---- */
-        .btn-login {
-            background: #0097cc;
-            border-radius: .5rem;
-            padding: .75rem;
+        .form-floating > label i {
             font-size: 1.1rem;
-            transition: background .3s;
-        }
-        .btn-login:hover {
-            background: #007bb3;
         }
 
-        /* ---- Pie del formulario ---- */
-        .login-footer {
-            text-align: center;
-            margin-top: 1rem;
-            font-size: .9rem;
-        }
-        .login-footer a {
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label {
+            transform: scale(0.85) translateY(-0.75rem) translateX(0.15rem);
             color: #0097cc;
             font-weight: 500;
         }
 
-        /* ---- Responsive ---- */
+        /* ---- Botón Premium ---- */
+        .btn-login {
+            background: linear-gradient(135deg, #0097cc 0%, #0080ad 100%);
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.85rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 6px -1px rgba(0, 151, 204, 0.2), 0 2px 4px -1px rgba(0, 151, 204, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .btn-login:hover {
+            background: linear-gradient(135deg, #0080ad 0%, #006a91 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 151, 204, 0.3), 0 4px 6px -2px rgba(0, 151, 204, 0.15);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        /* ---- Enlaces y Footer ---- */
+        .forgot-password {
+            display: block;
+            text-align: center;
+            margin-top: 1.25rem;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .forgot-password:hover {
+            color: #0097cc;
+            text-decoration: underline;
+        }
+
+        .footer-brand {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        /* ---- Alertas Personalizadas ---- */
+        .alert-danger {
+            border-radius: 0.75rem;
+            border: none;
+            background-color: #fef2f2;
+            color: #b91c1c;
+            padding: 1rem;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(185, 28, 28, 0.05);
+        }
+
+        .alert-warning {
+            border-radius: 0.75rem;
+            border: none;
+            background-color: #fffbeb;
+            color: #b45309;
+            padding: 1rem;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(180, 83, 9, 0.05);
+        }
+
+        /* ---- Adaptabilidad Responsive ---- */
         @@media (max-width: 992px) {
             .login-wrapper {
                 grid-template-columns: 1fr;
+                max-width: 500px;
                 height: auto;
+                min-height: auto;
             }
             .login-left {
                 display: none;
             }
-            body {
-                background: #f5f5f5;
+            .login-right {
+                padding: 4rem 2rem;
+            }
+            .footer-brand {
+                position: static;
+                margin-top: 2rem;
             }
         }
     </style>
-}
+</head>
+<body>
 
-<div class="login-wrapper">
-    <!-- Lado izquierdo ilustrativo -->
-    <div class="login-left">
-        <div class="content">
-            <h1>Bienvenido</h1>
-            <p>Gestiona tus órdenes, clientes y mucho más de forma sencilla.</p>
+    <div class="login-wrapper">
+        <!-- Lado izquierdo ilustrativo -->
+        <div class="login-left">
+            <div class="content">
+                <h1>Bienvenido</h1>
+                <p>Gestiona tus órdenes, clientes y mucho más de forma sencilla y eficiente.</p>
+            </div>
         </div>
-    </div>
 
-    <!-- Lado derecho formulario -->
-    <div class="login-right">
-        <div class="login-card">
-            <h3><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión</h3>
-            <form id="loginForm" asp-action="Login" method="post" novalidate>
-                @Html.AntiForgeryToken()
+        <!-- Lado derecho formulario -->
+        <div class="login-right">
+            <div class="login-card">
+                <h3><i class="bi bi-shield-lock-fill me-2"></i>Iniciar Sesión</h3>
+                
+                <form id="loginForm" asp-action="Login" method="post" novalidate>
+                    @Html.AntiForgeryToken()
 
-                @if (!ViewData.ModelState.IsValid)
-                {
-                    <div class="alert alert-danger">
-                        @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                        {
-                            <div>@err.ErrorMessage</div>
-                        }
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger" id="validationAlert">
+                            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <div><i class="bi bi-exclamation-triangle-fill me-2"></i>@err.ErrorMessage</div>
+                            }
+                        </div>
+                    }
+
+                    <div class="form-floating">
+                        <input name="username" class="form-control" id="username" placeholder="Usuario" required autocomplete="username" />
+                        <label for="username"><i class="bi bi-person-circle me-2"></i>Usuario</label>
                     </div>
-                }
 
-                <div class="form-floating mb-3">
-                    <input name="username" class="form-control" id="username" placeholder="Usuario" required />
-                    <label for="username"><i class="bi bi-person-circle me-2"></i>Usuario</label>
-                </div>
+                    <div class="form-floating">
+                        <input name="password" type="password" class="form-control" id="password" placeholder="Contraseña" required autocomplete="current-password" />
+                        <label for="password"><i class="bi bi-key-fill me-2"></i>Contraseña</label>
+                    </div>
 
-                <div class="form-floating mb-4">
-                    <input name="password" type="password" class="form-control" id="password" placeholder="Contraseña" required />
-                    <label for="password"><i class="bi bi-key-fill me-2"></i>Contraseña</label>
-                </div>
-
-                <div class="d-grid mb-3">
-                    <button id="submitBtn" type="submit" class="btn btn-login text-white">
-                        <i class="bi bi-door-open-fill me-2"></i>Ingresar
-                    </button>
-                </div>
-                <a asp-controller="Login" asp-action="SolicitarRecuperacion">¿Olvidaste tu contraseña?</a>
-            </form>
+                    <div class="d-grid mt-4">
+                        <button id="submitBtn" type="submit" class="btn btn-login text-white">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+                        </button>
+                    </div>
+                    
+                    <a class="forgot-password" asp-controller="Login" asp-action="SolicitarRecuperacion">¿Olvidaste tu contraseña?</a>
+                </form>
+            </div>
+            
+            <div class="footer-brand">
+                &copy; @DateTime.Now.Year - syswb_Taller
+            </div>
         </div>
     </div>
-</div>
 
-@section Scripts {
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         (function(){
             const maxAttempts = 3;
@@ -191,8 +323,9 @@
 
             function disableForm() {
                 $('#username, #password, #submitBtn').prop('disabled', true);
-                $('<div class="alert alert-warning mt-3">Has excedido el número de intentos. Intenta de nuevo después.</div>')
+                $('<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-octagon-fill me-2"></i>Has excedido el número de intentos. Intenta de nuevo más tarde.</div>')
                     .insertBefore('#loginForm');
+                $('#validationAlert').hide();
             }
 
             // Si estamos en periodo de bloqueo
@@ -221,14 +354,15 @@
             }
 
             // Validación en cliente
-            $('form').on('submit', function(e){
+            $('#loginForm').on('submit', function(e){
                 var u = $('#username').val().trim();
                 var p = $('#password').val().trim();
                 if (!u || !p) {
-                    alert("Por favor, ingresa usuario y contraseña.");
+                    alert("Por favor, ingresa tu usuario y contraseña.");
                     e.preventDefault();
                 }
             });
         })();
     </script>
-}
+</body>
+</html>
