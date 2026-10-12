@@ -1,170 +1,113 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
+using syswb_Taller.Data;
 using syswb_Taller.Models;
 
-namespace syswb_Taller.Controllers
+namespace syswb_Taller.Controllers;
+
+public class ServicioController : Controller
 {
-    public class ServicioController : Controller
+    private readonly BdTallerContext _bdTallerContext;
+
+    public ServicioController(BdTallerContext bdTallerContext)
     {
-        private readonly BdTallerContext _bdTallerContext;
+        _bdTallerContext = bdTallerContext;
+    }
 
-        public ServicioController(BdTallerContext bdTallerContext)
+    [HttpGet]
+    [Authorize(Roles = RolesSistema.Todos)]
+    public async Task<IActionResult> Lista(string? nombre = null, bool? activo = null)
+    {
+        var servicios = new List<Servicio>();
+
+        await using (var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync(
+            "Get_Servicios", ("@Nombre", nombre), ("@Activo", activo)))
+        await using (var reader = await cmd.ExecuteReaderAsync())
         {
-            _bdTallerContext = bdTallerContext;
-        }
-
-        [HttpGet]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
-        public async Task<IActionResult> Lista(string nombre = null, bool? activo = null)
-        {
-            var servicios = new List<Servicio>();
-
-            var conn = _bdTallerContext.Database.GetDbConnection();
-
-            await conn.OpenAsync();
-
-            using (var cmd = conn.CreateCommand())
+            while (await reader.ReadAsync())
             {
-                cmd.CommandText = "Get_Servicios";
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
-
-                cmd.Parameters.Add(new SqlParameter("@Nombre", (object)nombre ?? DBNull.Value));
-                cmd.Parameters.Add(new SqlParameter("@Activo", (object)activo ?? DBNull.Value));
-
-                using (var reader = await cmd.ExecuteReaderAsync())
+                servicios.Add(new Servicio
                 {
-                    while (await reader.ReadAsync())
-                    {
-                        servicios.Add(new Servicio
-                        {
-                            IdServicio = reader.GetInt32(0),
-                            SerNombre = reader.GetString(1),
-                            SerPrecioUnit = reader.GetDouble(2),
-                            SerActivo = reader.GetBoolean(3)
-                        });
-                    }
-                }
+                    IdServicio = reader.GetInt32(0),
+                    SerNombre = reader.GetString(1),
+                    SerPrecioUnit = reader.GetDouble(2),
+                    SerActivo = reader.GetBoolean(3)
+                });
             }
-
-            ViewBag.FiltroNombre = nombre;
-            ViewBag.FiltroActivo = activo;
-
-            return View(servicios);
         }
 
+        ViewBag.FiltroNombre = nombre;
+        ViewBag.FiltroActivo = activo;
 
+        return View(servicios);
+    }
 
+    [HttpGet]
+    [Authorize(Roles = RolesSistema.Gestion)]
+    public IActionResult Crear() => View();
 
-        [HttpGet]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
-        public IActionResult Crear()
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = RolesSistema.Gestion)]
+    public async Task<IActionResult> Crear(string serNombre, double serPrecioUnit)
+    {
+        await _bdTallerContext.Database.ExecuteStoredProcedureAsync("Ins_Servicio",
+            ("@serNombre", serNombre),
+            ("@serPrecioUnit", serPrecioUnit));
+
+        return RedirectToAction(nameof(Lista));
+    }
+
+    [HttpGet]
+    [Authorize(Roles = RolesSistema.Gestion)]
+    public async Task<IActionResult> Editar(int id)
+    {
+        dynamic? servicio = null;
+
+        await using (var cmd = await _bdTallerContext.Database.CreateSqlCommandAsync(
+            "SELECT idServicio, serNombre, serPrecioUnit FROM Servicio WHERE idServicio = @id",
+            ("@id", id)))
+        await using (var reader = await cmd.ExecuteReaderAsync())
         {
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
-        public async Task<IActionResult> Crear(string serNombre, double serPrecioUnit)
-        {
-            var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-
-            using (var cmd = conn.CreateCommand())
+            if (await reader.ReadAsync())
             {
-                cmd.CommandText = "Ins_Servicio";
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
-
-                cmd.Parameters.Add(new SqlParameter("@serNombre", serNombre));
-                cmd.Parameters.Add(new SqlParameter("@serPrecioUnit", serPrecioUnit));
-
-                await cmd.ExecuteNonQueryAsync();
-            }
-
-            return RedirectToAction("Lista");
-        }
-
-
-        [HttpGet]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
-        public async Task<IActionResult> Editar(int id)
-        {
-            dynamic servicio = null;
-
-            var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = "SELECT idServicio, serNombre, serPrecioUnit FROM Servicio WHERE idServicio = @id";
-                cmd.Parameters.Add(new SqlParameter("@id", id));
-
-                using (var reader = await cmd.ExecuteReaderAsync())
+                servicio = new
                 {
-                    if (await reader.ReadAsync())
-                    {
-                        servicio = new
-                        {
-                            IdServicio = reader.GetInt32(0),
-                            SerNombre = reader.GetString(1),
-                            SerPrecioUnit = reader.GetDouble(2)
-                        };
-                    }
-                }
+                    IdServicio = reader.GetInt32(0),
+                    SerNombre = reader.GetString(1),
+                    SerPrecioUnit = reader.GetDouble(2)
+                };
             }
-
-            if (servicio == null)
-                return NotFound();
-
-            ViewBag.Servicio = servicio;
-            return View();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
-        public async Task<IActionResult> Editar(int idServicio, string serNombre, double serPrecioUnit)
-        {
-            var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
+        if (servicio == null)
+            return NotFound();
 
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = "Upd_Servicio";
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+        ViewBag.Servicio = servicio;
+        return View();
+    }
 
-                cmd.Parameters.Add(new SqlParameter("@idServicio", idServicio));
-                cmd.Parameters.Add(new SqlParameter("@serNombre", serNombre));
-                cmd.Parameters.Add(new SqlParameter("@serPrecioUnit", serPrecioUnit));
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = RolesSistema.Gestion)]
+    public async Task<IActionResult> Editar(int idServicio, string serNombre, double serPrecioUnit)
+    {
+        await _bdTallerContext.Database.ExecuteStoredProcedureAsync("Upd_Servicio",
+            ("@idServicio", idServicio),
+            ("@serNombre", serNombre),
+            ("@serPrecioUnit", serPrecioUnit));
 
-                await cmd.ExecuteNonQueryAsync();
-            }
+        return RedirectToAction(nameof(Lista));
+    }
 
-            return RedirectToAction("Lista");
-        }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = RolesSistema.AdminSupervisor)]
+    public async Task<IActionResult> CambiarEstado(int idServicio)
+    {
+        await _bdTallerContext.Database.ExecuteStoredProcedureAsync("Mod_EstadoSer",
+            ("@idServicio", idServicio));
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador, Supervisor")]
-        public async Task<IActionResult> CambiarEstado(int idServicio)
-        {
-            var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = "Mod_EstadoSer";
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
-
-                cmd.Parameters.Add(new SqlParameter("@idServicio", idServicio));
-
-                await cmd.ExecuteNonQueryAsync();
-            }
-
-            return RedirectToAction("Lista");
-        }
-
+        return RedirectToAction(nameof(Lista));
     }
 }

@@ -123,6 +123,7 @@
                         <th class="text-end"><i class="bi bi-currency-dollar me-1"></i>Costo</th>
                         <th><i class="bi bi-cash-coin me-1"></i>Pagada</th>
                         <th><i class="bi bi-info-circle me-1"></i>Estado</th>
+                        <th class="text-end">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -165,13 +166,14 @@
                                             break;
                                     }
                                 </td>
+                                <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="@url"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Ver orden</a></td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 <i class="bi bi-exclamation-circle me-2"></i>No se encontraron órdenes.
                             </td>
                         </tr>

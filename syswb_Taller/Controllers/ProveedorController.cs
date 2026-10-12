@@ -1,239 +1,191 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
+using syswb_Taller.Data;
 using syswb_Taller.Models;
 
-namespace syswb_Taller.Controllers
+namespace syswb_Taller.Controllers;
+
+[Authorize(Roles = RolesSistema.Administrador)]
+public class ProveedorController : Controller
 {
-    public class ProveedorController : Controller
+    private readonly BdTallerContext _bdTallerContext;
+
+    public ProveedorController(BdTallerContext bdTallerContext)
     {
-        private readonly BdTallerContext _bdTallerContext;
+        _bdTallerContext = bdTallerContext;
+    }
 
-        public ProveedorController(BdTallerContext bdTallerContext)
+    // GET: Lista de proveedores con filtros
+    public async Task<IActionResult> Lista(string? nombre, bool? activo)
+    {
+        var proveedores = await _bdTallerContext.Proveedores
+            .FromSqlRaw("EXEC Get_Proveedores @Nombre, @Activo",
+                new SqlParameter("@Nombre", (object?)nombre ?? DBNull.Value),
+                new SqlParameter("@Activo", (object?)activo ?? DBNull.Value))
+            .ToListAsync();
+
+        ViewBag.NombreFiltro = nombre;
+        ViewBag.ActivoFiltro = activo;
+        return View(proveedores);
+    }
+
+    // GET: Formulario de creación
+    [HttpGet]
+    public IActionResult Detalle() => View();
+
+    // POST: Crear nuevo proveedor
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Detalle(string pNombre, string pTelefono)
+    {
+        try
         {
-            _bdTallerContext = bdTallerContext;
+            await _bdTallerContext.Database.ExecuteSqlRawAsync(
+                "EXEC Ins_Proveedor @pNombre, @pTelefono",
+                new SqlParameter("@pNombre", pNombre),
+                new SqlParameter("@pTelefono", pTelefono));
+
+            TempData["SuccessMessage"] = "Proveedor agregado correctamente.";
+            return RedirectToAction(nameof(Lista));
         }
-
-        // GET: Lista de proveedores con filtros
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Lista(string nombre, bool? activo)
+        catch (SqlException ex)
         {
-            var nombreParam = new SqlParameter("@Nombre", (object?)nombre ?? DBNull.Value);
-            var activoParam = new SqlParameter("@Activo", (object?)activo ?? DBNull.Value);
-
-            var proveedores = await _bdTallerContext.Proveedores
-                .FromSqlRaw("EXEC Get_Proveedores @Nombre, @Activo", nombreParam, activoParam)
-                .ToListAsync();
-
-            ViewBag.NombreFiltro = nombre;
-            ViewBag.ActivoFiltro = activo;
-            return View(proveedores);
-        }
-
-        // GET: Mostrar formulario de creación
-        [HttpGet]
-        [Authorize(Roles = "Administrador")]
-        public IActionResult Detalle()
-        {
+            ModelState.AddModelError(string.Empty, ex.Message);
             return View();
         }
+    }
 
-        // POST: Crear nuevo proveedor
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Detalle(string pNombre, string pTelefono)
+    // GET: Formulario de edición
+    [HttpGet]
+    public async Task<IActionResult> Editar(int id)
+    {
+        var proveedor = await _bdTallerContext.Proveedores.FirstOrDefaultAsync(p => p.IdProveedor == id);
+        if (proveedor == null)
+            return NotFound();
+
+        await CargarDatosProveedorAsync(id);
+        return View(proveedor);
+    }
+
+    // POST: Guardar cambios de edición
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Editar(int id, string pNombre, string pTelefono)
+    {
+        try
         {
-            try
-            {
-                var nombreParam = new SqlParameter("@pNombre", pNombre);
-                var telefonoParam = new SqlParameter("@pTelefono", pTelefono);
+            await _bdTallerContext.Database.ExecuteSqlRawAsync(
+                "EXEC Upd_Proveedor @idProveedor, @pNombre, @pTelefono",
+                new SqlParameter("@idProveedor", id),
+                new SqlParameter("@pNombre", pNombre),
+                new SqlParameter("@pTelefono", pTelefono));
 
-                await _bdTallerContext.Database.ExecuteSqlRawAsync(
-                    "EXEC Ins_Proveedor @pNombre, @pTelefono",
-                    nombreParam, telefonoParam
-                );
-
-                TempData["SuccessMessage"] = "Proveedor agregado correctamente.";
-                return RedirectToAction("Lista");
-            }
-            catch (SqlException ex)
-            {
-                ModelState.AddModelError("", ex.Message);
-                return View();
-            }
+            TempData["SuccessMessage"] = "Proveedor actualizado correctamente.";
+            return RedirectToAction(nameof(Lista));
         }
-
-        // GET: Mostrar formulario de edición
-        [HttpGet]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Editar(int id)
+        catch (SqlException ex)
         {
-            var proveedor = await _bdTallerContext.Proveedores
-                .FirstOrDefaultAsync(p => p.IdProveedor == id);
-            if (proveedor == null) return NotFound();
+            ModelState.AddModelError(string.Empty, ex.Message);
 
-            await CargarDatosProveedor(id);
+            var proveedor = await _bdTallerContext.Proveedores.FirstOrDefaultAsync(p => p.IdProveedor == id);
+            await CargarDatosProveedorAsync(id);
             return View(proveedor);
         }
+    }
 
-        // POST: Guardar cambios de edición
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Editar(int id, string pNombre, string pTelefono)
+    // GET: Productos asociados como JSON
+    [HttpGet]
+    public async Task<IActionResult> Productos(int idProveedor)
+    {
+        var lista = await _bdTallerContext.Set<ProveedorProducto>()
+            .FromSqlRaw("EXEC Get_ProductosPorProveedor @idProveedor", new SqlParameter("@idProveedor", idProveedor))
+            .ToListAsync();
+
+        return Json(lista);
+    }
+
+    // POST: Agregar producto asociado
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> AgregarProducto(int idProveedor, int idProducto, double precioRef) =>
+        EjecutarYVolverAEditarAsync(idProveedor,
+            "EXEC Ins_ProveedorProducto @idProveedor, @idProducto, @precioRef",
+            new SqlParameter("@idProveedor", idProveedor),
+            new SqlParameter("@idProducto", idProducto),
+            new SqlParameter("@precioRef", precioRef));
+
+    // POST: Actualizar precio/estado del producto asociado
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> ActualizarProducto(int idProveedor, int idProducto, double? precioRef, bool? activo) =>
+        EjecutarYVolverAEditarAsync(idProveedor,
+            "EXEC Upd_ProveedorProducto @idProveedor, @idProducto, @precioRef, @activo",
+            new SqlParameter("@idProveedor", idProveedor),
+            new SqlParameter("@idProducto", idProducto),
+            new SqlParameter("@precioRef", (object?)precioRef ?? DBNull.Value),
+            new SqlParameter("@activo", (object?)activo ?? DBNull.Value));
+
+    // POST: Alternar estado activo del producto asociado
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> ToggleProducto(int idProveedor, int idProducto) =>
+        EjecutarYVolverAEditarAsync(idProveedor,
+            "EXEC Toggle_ProveedorProducto @idProveedor, @idProducto",
+            new SqlParameter("@idProveedor", idProveedor),
+            new SqlParameter("@idProducto", idProducto));
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleProveedor(int idProveedor)
+    {
+        try
         {
-            try
-            {
-                var idParam = new SqlParameter("@idProveedor", id);
-                var nombreParam = new SqlParameter("@pNombre", pNombre);
-                var telefonoParam = new SqlParameter("@pTelefono", pTelefono);
-
-                await _bdTallerContext.Database.ExecuteSqlRawAsync(
-                    "EXEC Upd_Proveedor @idProveedor, @pNombre, @pTelefono",
-                    idParam, nombreParam, telefonoParam
-                );
-
-                TempData["SuccessMessage"] = "Proveedor actualizado correctamente.";
-                return RedirectToAction("Lista");
-            }
-            catch (SqlException ex)
-            {
-                ModelState.AddModelError("", ex.Message);
-
-                // Recuperar proveedor y recargar ViewBags
-                var proveedor = await _bdTallerContext.Proveedores
-                    .FirstOrDefaultAsync(p => p.IdProveedor == id);
-                await CargarDatosProveedor(id);
-                return View(proveedor);
-            }
+            await _bdTallerContext.Database.ExecuteSqlRawAsync(
+                "EXEC Mod_EstadoProv @idProveedor",
+                new SqlParameter("@idProveedor", idProveedor));
+        }
+        catch (SqlException ex)
+        {
+            TempData["ErrorProveedor"] = ex.Message;
         }
 
-        // GET: Productos asociados como JSON (opcional)
-        [HttpGet]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Productos(int idProveedor)
+        return RedirectToAction(nameof(Lista));
+    }
+
+    /// <summary>
+    /// Ejecuta un comando sobre los productos del proveedor y vuelve a su pantalla de edición.
+    /// Si la base de datos devuelve un error, se muestra en la vista.
+    /// </summary>
+    private async Task<IActionResult> EjecutarYVolverAEditarAsync(int idProveedor, string sql, params SqlParameter[] parameters)
+    {
+        try
         {
-            var param = new SqlParameter("@idProveedor", idProveedor);
-            var lista = await _bdTallerContext.Set<ProveedorProducto>()
-                .FromSqlRaw("EXEC Get_ProductosPorProveedor @idProveedor", param)
-                .ToListAsync();
-            return Json(lista);
+            await _bdTallerContext.Database.ExecuteSqlRawAsync(sql, parameters);
+        }
+        catch (SqlException ex)
+        {
+            TempData["ErrorProducto"] = ex.Message;
         }
 
-        // POST: Agregar producto asociado
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> AgregarProducto(int idProveedor, int idProducto, double precioRef)
+        return RedirectToAction(nameof(Editar), new { id = idProveedor });
+    }
+
+    /// <summary>
+    /// Carga en ViewBag los productos activos y los productos asociados al proveedor.
+    /// </summary>
+    private async Task CargarDatosProveedorAsync(int id)
+    {
+        ViewBag.TodosProductos = await _bdTallerContext.ProductoRepuestos
+            .Where(p => p.PrActivo)
+            .ToListAsync();
+
+        var asociados = new List<ProveedorProducto>();
+        await using (var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync(
+            "dbo.Get_ProductosPorProveedor", ("@idProveedor", id)))
+        await using (var reader = await cmd.ExecuteReaderAsync())
         {
-            var pProv = new SqlParameter("@idProveedor", idProveedor);
-            var pProd = new SqlParameter("@idProducto", idProducto);
-            var pPrecio = new SqlParameter("@precioRef", precioRef);
-
-            try
-            {
-                await _bdTallerContext.Database.ExecuteSqlRawAsync(
-                    "EXEC Ins_ProveedorProducto @idProveedor, @idProducto, @precioRef",
-                    pProv, pProd, pPrecio);
-
-                return RedirectToAction("Editar", new { id = idProveedor });
-            }
-            catch (SqlException ex)
-            {
-                TempData["ErrorProducto"] = ex.Message;
-                return RedirectToAction("Editar", new { id = idProveedor });
-            }
-        }
-
-        // POST: Actualizar precio/estado producto asociado
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> ActualizarProducto(int idProveedor, int idProducto, double? precioRef, bool? activo)
-        {
-            var pProv = new SqlParameter("@idProveedor", idProveedor);
-            var pProd = new SqlParameter("@idProducto", idProducto);
-            var pPrecio = new SqlParameter("@precioRef", precioRef ?? (object)DBNull.Value);
-            var pActivo = new SqlParameter("@activo", activo ?? (object)DBNull.Value);
-
-            try
-            {
-                await _bdTallerContext.Database.ExecuteSqlRawAsync(
-                    "EXEC Upd_ProveedorProducto @idProveedor, @idProducto, @precioRef, @activo",
-                    pProv, pProd, pPrecio, pActivo);
-
-                return RedirectToAction("Editar", new { id = idProveedor });
-            }
-            catch (SqlException ex)
-            {
-                TempData["ErrorProducto"] = ex.Message;
-                return RedirectToAction("Editar", new { id = idProveedor });
-            }
-        }
-
-        // POST: Alternar estado activo del producto asociado
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> ToggleProducto(int idProveedor, int idProducto)
-        {
-            var pProv = new SqlParameter("@idProveedor", idProveedor);
-            var pProd = new SqlParameter("@idProducto", idProducto);
-            try
-            {
-                await _bdTallerContext.Database.ExecuteSqlRawAsync(
-                    "EXEC Toggle_ProveedorProducto @idProveedor, @idProducto",
-                    pProv, pProd);
-
-                return RedirectToAction("Editar", new { id = idProveedor });
-            }
-            catch (SqlException ex)
-            {
-                TempData["ErrorProducto"] = ex.Message;
-                return RedirectToAction("Editar", new { id = idProveedor });
-            }
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> ToggleProveedor(int idProveedor)
-        {
-            var pId = new SqlParameter("@idProveedor", idProveedor);
-            try
-            {
-                await _bdTallerContext.Database.ExecuteSqlRawAsync(
-                    "EXEC Mod_EstadoProv @idProveedor", pId);
-                return RedirectToAction("Lista");
-            }
-            catch (SqlException ex)
-            {
-                TempData["ErrorProveedor"] = ex.Message;
-                return RedirectToAction("Lista");
-            }
-        }
-
-
-        /// <summary>
-        /// Método privado para reconstruir productos activos y asociados
-        /// </summary>
-        private async Task CargarDatosProveedor(int id)
-        {
-            ViewBag.TodosProductos = await _bdTallerContext.ProductoRepuestos
-                .Where(p => p.PrActivo)
-                .ToListAsync();
-
-            var asociados = new List<ProveedorProducto>();
-            var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "dbo.Get_ProductosPorProveedor";
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@idProveedor", id));
-            using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 asociados.Add(new ProveedorProducto
@@ -249,8 +201,8 @@ namespace syswb_Taller.Controllers
                     }
                 });
             }
-            ViewBag.ProductosAsociados = asociados;
         }
 
+        ViewBag.ProductosAsociados = asociados;
     }
 }

@@ -1,70 +1,59 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using syswb_Taller.Models;
 
-namespace syswb_Taller.Controllers
+namespace syswb_Taller.Controllers;
+
+public class PersonaController : Controller
 {
-    public class PersonaController : Controller
+    private readonly BdTallerContext _bdTallerContext;
+
+    public PersonaController(BdTallerContext bdTallerContext)
     {
-        private readonly BdTallerContext _bdTallerContext;
-        public PersonaController(BdTallerContext bdTallerContext)
-        {
-            _bdTallerContext = bdTallerContext;
-        }
+        _bdTallerContext = bdTallerContext;
+    }
 
-        [HttpGet]
-        public async Task<IActionResult> Lista()
-        {
-            List<Persona> lista = await _bdTallerContext.Personas.ToListAsync();
-            return View(lista);
-        }
+    public IActionResult Index() => View();
 
+    [HttpGet]
+    public async Task<IActionResult> Lista()
+    {
+        var lista = await _bdTallerContext.Personas.ToListAsync();
+        return View(lista);
+    }
 
-        [HttpGet] //Aca es para devolver una vista
-        public IActionResult Nuevo()
-        {
-           return View();
-        }
+    [HttpGet]
+    public IActionResult Nuevo() => View();
 
+    [HttpPost]
+    public async Task<IActionResult> Nuevo(Persona persona)
+    {
+        await _bdTallerContext.Personas.AddAsync(persona);
+        await _bdTallerContext.SaveChangesAsync();
+        return RedirectToAction(nameof(Lista));
+    }
 
-        //Metodo para agregar informacion, el post devuelve los valosres de la vista Nuevo, podria aca llamr a los metodos que ya tengo listos
-        [HttpPost]
-        public async Task<IActionResult> Nuevo(Persona persona)
-        {
-            await _bdTallerContext.Personas.AddAsync(persona);
-            await _bdTallerContext.SaveChangesAsync();
-            return RedirectToAction(nameof(Lista));
-        }
+    [HttpGet]
+    public async Task<IActionResult> Editar(int id)
+    {
+        var persona = await _bdTallerContext.Personas.FirstAsync(p => p.IdPersona == id);
+        return View(persona);
+    }
 
-        [HttpGet] //Aca es para devolver una vista
-        public async Task<IActionResult> Editar(int id)
-        {
-            Persona persona = await _bdTallerContext.Personas.FirstAsync(e => e.IdPersona == id);
-            return View(persona);
-        }
+    [HttpPost]
+    public async Task<IActionResult> Editar(Persona persona)
+    {
+        _bdTallerContext.Personas.Update(persona);
+        await _bdTallerContext.SaveChangesAsync();
+        return RedirectToAction(nameof(Lista));
+    }
 
-        [HttpPost]
-        public async Task<IActionResult> Editar(Persona persona)
-        {
-            _bdTallerContext.Personas.Update(persona);
-            await _bdTallerContext.SaveChangesAsync();
-            return RedirectToAction(nameof(Lista));
-        }
-
-
-        [HttpGet] //Aca es para devolver una vista
-        public async Task<IActionResult> Eliminar(int id)
-        {
-            Persona persona = await _bdTallerContext.Personas.FirstAsync(e => e.IdPersona == id);
-            _bdTallerContext.Personas.Remove(persona);
-            await _bdTallerContext.SaveChangesAsync();
-            return RedirectToAction(nameof(Lista));
-        }
-
-
-        public IActionResult Index()
-        {
-            return View();
-        }
+    [HttpGet]
+    public async Task<IActionResult> Eliminar(int id)
+    {
+        var persona = await _bdTallerContext.Personas.FirstAsync(p => p.IdPersona == id);
+        _bdTallerContext.Personas.Remove(persona);
+        await _bdTallerContext.SaveChangesAsync();
+        return RedirectToAction(nameof(Lista));
     }
 }

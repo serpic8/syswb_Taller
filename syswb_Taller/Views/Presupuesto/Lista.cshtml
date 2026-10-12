@@ -110,6 +110,7 @@
                         <th><i class="bi bi-person me-1"></i>Cliente</th>
                         <th><i class="bi bi-info-circle me-1"></i>Estado</th>
                         <th class="text-end"><i class="bi bi-currency-dollar me-1"></i>Costo</th>
+                        <th class="text-end">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -132,13 +133,14 @@
                                     }
                                 </td>
                                 <td class="text-end">@p.Costo.ToString("C")</td>
+                                <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="EditarPresupuesto" asp-route-id="@p.Id"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Ver</a></td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="5" class="text-center py-4">
+                            <td colspan="6" class="text-center py-4">
                                 <i class="bi bi-exclamation-circle me-2"></i>No se encontraron presupuestos.
                             </td>
                         </tr>
