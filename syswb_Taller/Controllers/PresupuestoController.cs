@@ -320,8 +320,9 @@ public class PresupuestoController : Controller
         int idPresupuesto = await _bd.PresupuestoDetallePacks
             .Where(d => d.IdDetalle == idDetalle)
             .Select(d => d.IdPresupuesto)
-            .FirstAsync();
+            .FirstOrDefaultAsync();
 
+        if (idPresupuesto == 0) return RedirectToAction(nameof(Lista));
         return RedirigirAEditar(idPresupuesto);
     }
 
@@ -337,8 +338,9 @@ public class PresupuestoController : Controller
         int idPresupuesto = await _bd.PresupuestoDetalleProductos
             .Where(d => d.IdDetalle == idDetalle)
             .Select(d => d.IdPresupuesto)
-            .FirstAsync();
+            .FirstOrDefaultAsync();
 
+        if (idPresupuesto == 0) return RedirectToAction(nameof(Lista));
         return RedirigirAEditar(idPresupuesto);
     }
 
@@ -354,8 +356,9 @@ public class PresupuestoController : Controller
         int idPresupuesto = await _bd.PresupuestoDetalleServicios
             .Where(d => d.IdDetalle == idDetalle)
             .Select(d => d.IdPresupuesto)
-            .FirstAsync();
+            .FirstOrDefaultAsync();
 
+        if (idPresupuesto == 0) return RedirectToAction(nameof(Lista));
         return RedirigirAEditar(idPresupuesto);
     }
 
@@ -367,10 +370,11 @@ public class PresupuestoController : Controller
         int idPresupuesto = await _bd.PresupuestoDetallePacks
             .Where(d => d.IdDetalle == idDetalle)
             .Select(d => d.IdPresupuesto)
-            .FirstAsync();
+            .FirstOrDefaultAsync();
 
         await _bd.Database.ExecuteStoredProcedureAsync("Del_PresupuestoDetPack", ("@idDetalle", idDetalle));
 
+        if (idPresupuesto == 0) return RedirectToAction(nameof(Lista));
         return RedirigirAEditar(idPresupuesto);
     }
 
@@ -382,10 +386,11 @@ public class PresupuestoController : Controller
         int idPresupuesto = await _bd.PresupuestoDetalleProductos
             .Where(d => d.IdDetalle == idDetalle)
             .Select(d => d.IdPresupuesto)
-            .FirstAsync();
+            .FirstOrDefaultAsync();
 
         await _bd.Database.ExecuteStoredProcedureAsync("Del_PresupuestoDetProducto", ("@idDetalle", idDetalle));
 
+        if (idPresupuesto == 0) return RedirectToAction(nameof(Lista));
         return RedirigirAEditar(idPresupuesto);
     }
 
@@ -397,10 +402,11 @@ public class PresupuestoController : Controller
         int idPresupuesto = await _bd.PresupuestoDetalleServicios
             .Where(d => d.IdDetalle == idDetalle)
             .Select(d => d.IdPresupuesto)
-            .FirstAsync();
+            .FirstOrDefaultAsync();
 
         await _bd.Database.ExecuteStoredProcedureAsync("Del_PresupuestoDetServicio", ("@idDetalle", idDetalle));
 
+        if (idPresupuesto == 0) return RedirectToAction(nameof(Lista));
         return RedirigirAEditar(idPresupuesto);
     }
 
@@ -469,15 +475,21 @@ public class PresupuestoController : Controller
     /// </summary>
     private async Task CargarDatosFormularioAsync(int? idCliente, int? idVehiculo)
     {
-        var cliente = await _bd.Clientes
-            .Include(c => c.IdPersonaNavigation)
-            .FirstOrDefaultAsync(c => c.IdCliente == idCliente);
-        var vehiculo = await _bd.Vehiculos.FindAsync(idVehiculo);
+        var cliente = idCliente.HasValue
+            ? await _bd.Clientes
+                .Include(c => c.IdPersonaNavigation)
+                .FirstOrDefaultAsync(c => c.IdCliente == idCliente.Value)
+            : null;
+        var vehiculo = idVehiculo.HasValue
+            ? await _bd.Vehiculos.FindAsync(idVehiculo.Value)
+            : null;
 
         ViewBag.ClienteID = cliente?.IdCliente ?? idCliente;
         ViewBag.IdVehiculo = vehiculo?.IdVehiculo ?? idVehiculo;
-        ViewBag.ClienteNombre = $"{cliente?.IdPersonaNavigation.PNombre} {cliente?.IdPersonaNavigation.PApellido}";
-        ViewBag.Matricula = vehiculo?.VhMatricula;
+        ViewBag.ClienteNombre = cliente?.IdPersonaNavigation != null
+            ? $"{cliente.IdPersonaNavigation.PNombre} {cliente.IdPersonaNavigation.PApellido}"
+            : "Cliente no especificado";
+        ViewBag.Matricula = vehiculo?.VhMatricula ?? "Sin matrícula";
 
         ViewBag.Productos = await _bd.ProductoRepuestos.Where(p => p.PrActivo).ToListAsync();
         ViewBag.Servicios = await _bd.Servicios.Where(s => s.SerActivo).ToListAsync();

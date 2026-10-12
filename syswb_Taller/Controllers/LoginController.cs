@@ -58,8 +58,8 @@ public class LoginController : Controller
         {
             new(ClaimTypes.NameIdentifier, empleado.IdEmpleado.ToString()),
             new(ClaimTypes.Name, empleado.EmpUsuario),
-            new(ClaimTypes.GivenName, empleado.IdPersonaNavigation.PNombre),
-            new(ClaimTypes.Surname, empleado.IdPersonaNavigation.PApellido),
+            new(ClaimTypes.GivenName, empleado.IdPersonaNavigation?.PNombre ?? empleado.EmpUsuario),
+            new(ClaimTypes.Surname, empleado.IdPersonaNavigation?.PApellido ?? string.Empty),
             new(ClaimTypes.Role, rol?.RTipo ?? string.Empty)
         };
 
@@ -89,17 +89,26 @@ public class LoginController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Registrar(string pNombre, string pApellido, string pTelefono, string pCedula, string empUsuario, int idRol, string contrasena_texto)
     {
-        await _bd.Database.ExecuteSqlRawAsync(
-            "EXEC Ins_Empleado @pNombre, @pApellido, @pTelefono, @pCedula, @empUsuario, @idRol, @contrasena_texto",
-            new SqlParameter("@pNombre", pNombre),
-            new SqlParameter("@pApellido", pApellido),
-            new SqlParameter("@pTelefono", pTelefono),
-            new SqlParameter("@pCedula", pCedula),
-            new SqlParameter("@empUsuario", empUsuario),
-            new SqlParameter("@idRol", idRol),
-            new SqlParameter("@contrasena_texto", contrasena_texto));
+        try
+        {
+            await _bd.Database.ExecuteSqlRawAsync(
+                "EXEC Ins_Empleado @pNombre, @pApellido, @pTelefono, @pCedula, @empUsuario, @idRol, @contrasena_texto",
+                new SqlParameter("@pNombre", pNombre ?? string.Empty),
+                new SqlParameter("@pApellido", pApellido ?? string.Empty),
+                new SqlParameter("@pTelefono", pTelefono ?? (object)DBNull.Value),
+                new SqlParameter("@pCedula", pCedula ?? string.Empty),
+                new SqlParameter("@empUsuario", empUsuario ?? string.Empty),
+                new SqlParameter("@idRol", idRol),
+                new SqlParameter("@contrasena_texto", contrasena_texto ?? string.Empty));
 
-        return RedirectToAction(nameof(Login));
+            return RedirectToAction(nameof(Login));
+        }
+        catch (SqlException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            ViewBag.Roles = await _bd.Roles.ToListAsync();
+            return View();
+        }
     }
 
     [HttpPost]

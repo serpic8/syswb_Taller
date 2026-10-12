@@ -41,12 +41,12 @@ public class OrdenController : Controller
                 {
                     Id = reader.GetInt32(0),
                     Creacion = reader.GetDateTime(1),
-                    Cliente = reader.GetString(2),
-                    Vehiculo = reader.GetString(3),
+                    Cliente = reader.GetNullableString(2) ?? string.Empty,
+                    Vehiculo = reader.GetNullableString(3) ?? string.Empty,
                     Entrega = reader.GetNullableDateTime(4),
-                    Costo = reader.GetDouble(5),
-                    Pagada = reader.GetInt32(6) == 1,
-                    Estado = reader.GetString(7)
+                    Costo = reader.GetNullableDouble(5) ?? 0.0,
+                    Pagada = Convert.ToInt32(reader.GetValue(6)) == 1,
+                    Estado = reader.GetNullableString(7) ?? string.Empty
                 });
             }
         }
@@ -76,13 +76,13 @@ public class OrdenController : Controller
         await using (var cmd = conn.CreateStoredProcedure("Ins_Cliente", tran,
             ("@pNombre", pNombre),
             ("@pApellido", pApellido),
-            ("@pTelefono", pTelefono),
+            ("@pTelefono", pTelefono?.Replace("-", "") ?? string.Empty),
             ("@pCedula", pCedula),
             ("@clEmail", clEmail)))
         {
             var outIdCliente = cmd.AddOutputParameter("@OutIdCliente", SqlDbType.Int);
             await cmd.ExecuteNonQueryAsync();
-            idCliente = (int)outIdCliente.Value;
+            idCliente = outIdCliente.Value is int outId ? outId : (int.TryParse(outIdCliente.Value?.ToString(), out var p) ? p : 0);
         }
 
         int idVehiculo;
@@ -97,7 +97,7 @@ public class OrdenController : Controller
         {
             var outIdVehiculo = cmd.AddOutputParameter("@idVehiculo", SqlDbType.Int);
             await cmd.ExecuteNonQueryAsync();
-            idVehiculo = (int)outIdVehiculo.Value;
+            idVehiculo = outIdVehiculo.Value is int outVeh ? outVeh : (int.TryParse(outIdVehiculo.Value?.ToString(), out var pv) ? pv : 0);
         }
 
         await tran.CommitAsync();
@@ -119,9 +119,9 @@ public class OrdenController : Controller
             {
                 dynamic cliente = new ExpandoObject();
                 cliente.Id = reader.GetInt32(0);
-                cliente.Nombre = reader.GetString(1);
-                cliente.Apellido = reader.GetString(2);
-                cliente.Telefono = reader.GetString(3);
+                cliente.Nombre = reader.GetNullableString(1) ?? string.Empty;
+                cliente.Apellido = reader.GetNullableString(2) ?? string.Empty;
+                cliente.Telefono = reader.GetNullableString(3) ?? string.Empty;
                 cliente.Vehiculos = new List<dynamic>();
                 clientes.Add(cliente);
             }
@@ -195,13 +195,15 @@ public class OrdenController : Controller
 
         var cliente = await _bd.Clientes
             .Include(c => c.IdPersonaNavigation)
-            .FirstAsync(c => c.IdCliente == orden.IdCliente);
+            .FirstOrDefaultAsync(c => c.IdCliente == orden.IdCliente);
         var vehiculo = await _bd.Vehiculos.FindAsync(orden.IdVehiculo);
 
-        ViewBag.ClienteID = cliente.IdCliente;
-        ViewBag.VehiculoID = vehiculo!.IdVehiculo;
-        ViewBag.ClienteNombre = $"{cliente.IdPersonaNavigation.PNombre} {cliente.IdPersonaNavigation.PApellido}";
-        ViewBag.Matricula = vehiculo.VhMatricula;
+        ViewBag.ClienteID = cliente?.IdCliente ?? orden.IdCliente;
+        ViewBag.VehiculoID = vehiculo?.IdVehiculo ?? orden.IdVehiculo;
+        ViewBag.ClienteNombre = cliente != null
+            ? $"{cliente.IdPersonaNavigation?.PNombre} {cliente.IdPersonaNavigation?.PApellido}".Trim()
+            : "Cliente no asignado";
+        ViewBag.Matricula = vehiculo?.VhMatricula ?? "Sin matrícula";
 
         ViewBag.Estados = new[] { "Pendiente", "En Proceso", "Finalizado" };
         ViewBag.Tipos = Tipos;
@@ -218,7 +220,7 @@ public class OrdenController : Controller
         detalles.AddRange(packs.Select(d => new
         {
             Tipo = "Pack",
-            Nombre = d.IdPackNavigation.PckNombre,
+            Nombre = d.IdPackNavigation?.PckNombre ?? "Pack sin nombre",
             Cantidad = d.OpCantidad,
             Precio = d.OpPrecioPack,
             d.IdDetalle
@@ -231,7 +233,7 @@ public class OrdenController : Controller
         detalles.AddRange(productos.Select(d => new
         {
             Tipo = "Producto",
-            Nombre = d.IdProductoNavigation.PrNombre,
+            Nombre = d.IdProductoNavigation?.PrNombre ?? "Producto sin nombre",
             Cantidad = d.OpCantidad,
             Precio = d.OpPrecioUnit,
             d.IdDetalle
@@ -244,7 +246,7 @@ public class OrdenController : Controller
         detalles.AddRange(servicios.Select(d => new
         {
             Tipo = "Servicio",
-            Nombre = d.IdServicioNavigation.SerNombre,
+            Nombre = d.IdServicioNavigation?.SerNombre ?? "Servicio sin nombre",
             Cantidad = d.OpCantidad,
             Precio = d.OpPrecioUnit,
             d.IdDetalle
@@ -307,7 +309,8 @@ public class OrdenController : Controller
     [Authorize(Roles = RolesSistema.Gestion)]
     public async Task<IActionResult> ActualizarPack(int idDetalle, int? opCantidad)
     {
-        int idOrden = await _bd.OrdenDetallePacks.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+        int idOrden = await _bd.OrdenDetallePacks.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstOrDefaultAsync();
+        if (idOrden == 0) return RedirectToAction(nameof(Lista));
         return await EjecutarDetalleAsync(idOrden, "Upd_OrdenDetPack",
             "No hay stock suficiente para uno o más componentes del pack.",
             ("@idDetalle", idDetalle), ("@opCantidad", opCantidad));
@@ -317,7 +320,8 @@ public class OrdenController : Controller
     [Authorize(Roles = RolesSistema.Gestion)]
     public async Task<IActionResult> ActualizarProducto(int idDetalle, int? opCantidad)
     {
-        int idOrden = await _bd.OrdenDetalleProductos.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+        int idOrden = await _bd.OrdenDetalleProductos.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstOrDefaultAsync();
+        if (idOrden == 0) return RedirectToAction(nameof(Lista));
         return await EjecutarDetalleAsync(idOrden, "Upd_OrdenDetProducto",
             "No hay suficiente stock disponible para este producto.",
             ("@idDetalle", idDetalle), ("@opCantidad", opCantidad));
@@ -327,7 +331,8 @@ public class OrdenController : Controller
     [Authorize(Roles = RolesSistema.Gestion)]
     public async Task<IActionResult> ActualizarServicio(int idDetalle, int? opCantidad)
     {
-        int idOrden = await _bd.OrdenDetalleServicios.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+        int idOrden = await _bd.OrdenDetalleServicios.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstOrDefaultAsync();
+        if (idOrden == 0) return RedirectToAction(nameof(Lista));
         return await EjecutarDetalleAsync(idOrden, "Upd_OrdenDetServicio", null,
             ("@idDetalle", idDetalle), ("@opCantidad", opCantidad));
     }
@@ -336,7 +341,8 @@ public class OrdenController : Controller
     [Authorize(Roles = RolesSistema.AdminSupervisor)]
     public async Task<IActionResult> EliminarPack(int idDetalle)
     {
-        int idOrden = await _bd.OrdenDetallePacks.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+        int idOrden = await _bd.OrdenDetallePacks.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstOrDefaultAsync();
+        if (idOrden == 0) return RedirectToAction(nameof(Lista));
         return await EjecutarDetalleAsync(idOrden, "Del_OrdenDetPack", null, ("@idDetalle", idDetalle));
     }
 
@@ -344,7 +350,8 @@ public class OrdenController : Controller
     [Authorize(Roles = RolesSistema.Gestion)]
     public async Task<IActionResult> EliminarProducto(int idDetalle)
     {
-        int idOrden = await _bd.OrdenDetalleProductos.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+        int idOrden = await _bd.OrdenDetalleProductos.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstOrDefaultAsync();
+        if (idOrden == 0) return RedirectToAction(nameof(Lista));
         return await EjecutarDetalleAsync(idOrden, "Del_OrdenDetProducto", null, ("@idDetalle", idDetalle));
     }
 
@@ -352,7 +359,8 @@ public class OrdenController : Controller
     [Authorize(Roles = RolesSistema.Gestion)]
     public async Task<IActionResult> EliminarServicio(int idDetalle)
     {
-        int idOrden = await _bd.OrdenDetalleServicios.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstAsync();
+        int idOrden = await _bd.OrdenDetalleServicios.Where(d => d.IdDetalle == idDetalle).Select(d => d.IdOrden).FirstOrDefaultAsync();
+        if (idOrden == 0) return RedirectToAction(nameof(Lista));
         return await EjecutarDetalleAsync(idOrden, "Del_OrdenDetServicio", null, ("@idDetalle", idDetalle));
     }
 
@@ -429,7 +437,8 @@ public class OrdenController : Controller
             ("@mecanico_responsable", mecanico_responsable),
             ("@informe_tecnico", informe_tecnico));
 
-        int idOrden = await _bd.OrdenDetalleEntregas.Where(d => d.IdEntrega == idEntrega).Select(d => d.IdOrden).FirstAsync();
+        int idOrden = await _bd.OrdenDetalleEntregas.Where(d => d.IdEntrega == idEntrega).Select(d => d.IdOrden).FirstOrDefaultAsync();
+        if (idOrden == 0) return RedirectToAction(nameof(Lista));
         return RedirigirAEditar(idOrden);
     }
 
@@ -471,7 +480,7 @@ public class OrdenController : Controller
         ViewBag.YaPago = pagoExistente != null;
         ViewBag.ClienteID = orden.IdVehiculoNavigation?.IdCliente;
         ViewBag.EmpleadoNombre = empleado != null
-            ? $"{empleado.IdPersonaNavigation.PNombre} {empleado.IdPersonaNavigation.PApellido}"
+            ? $"{empleado.IdPersonaNavigation?.PNombre} {empleado.IdPersonaNavigation?.PApellido}".Trim()
             : "Empleado no identificado";
         ViewBag.FechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
 
@@ -487,7 +496,11 @@ public class OrdenController : Controller
         int idCliente,
         string orden_entrega)
     {
-        int idEmpleado = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var idEmpleado))
+        {
+            TempData["Error"] = "No se pudo obtener la identidad del empleado.";
+            return RedirigirAEditar(idOrden);
+        }
 
         var orden = await _bd.Ordenes.FindAsync(idOrden);
         if (orden == null)
@@ -520,7 +533,7 @@ public class OrdenController : Controller
 
     // GET: Orden/DetallesEntrega/5
     [HttpGet]
-    [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecánico")]
+    [Authorize(Roles = RolesSistema.Todos)]
     public async Task<IActionResult> DetallesEntrega(int idOrden)
     {
         var entrega = await _bd.OrdenDetalleEntregas.FirstOrDefaultAsync(e => e.IdOrden == idOrden);
@@ -556,7 +569,8 @@ public class OrdenController : Controller
             ("@metodoPago", metodoPago),
             ("@observaciones", observaciones));
 
-        int idOrden = await _bd.DetallePagoOrdens.Where(d => d.IdPagoOrden == idPagoOrden).Select(d => d.IdOrden).FirstAsync();
+        int idOrden = await _bd.DetallePagoOrdens.Where(d => d.IdPagoOrden == idPagoOrden).Select(d => d.IdOrden).FirstOrDefaultAsync();
+        if (idOrden == 0) return RedirectToAction(nameof(Lista));
         return RedirigirAEditar(idOrden);
     }
 
@@ -601,7 +615,7 @@ public class OrdenController : Controller
         var consulta = _bd.Empleados.Where(e => e.EmpActivo);
 
         if (soloMecanicos)
-            consulta = consulta.Where(e => e.IdRolNavigation.RTipo == RolMecanicoBd);
+            consulta = consulta.Where(e => e.IdRolNavigation.RTipo == "Mecanico" || e.IdRolNavigation.RTipo == "Mecánico");
 
         return await consulta
             .Select(e => new EmpleadoOpcion(

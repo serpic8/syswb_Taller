@@ -1,4 +1,4 @@
-﻿@using System.Globalization
+@using System.Globalization
 @removeTagHelper "Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers"
 @{
     ViewData["Title"] = "Resumen Mensual";
@@ -7,11 +7,11 @@
     var nicaragua = new CultureInfo("es-NI");
 
     // Valores desde ViewBag
-    var ingresos = (double)ViewBag.TotalIngresos;
-    var egresos = (double)ViewBag.TotalEgresos;
-    var balance = (double)ViewBag.Balance;
-    var actividades = (List<syswb_Taller.Models.MovimientoFinanciero>)ViewBag.Actividades;
-    var ordenes = (List<dynamic>)ViewBag.Ordenes;
+    var ingresos = Convert.ToDouble(ViewBag.TotalIngresos ?? 0.0);
+    var egresos = Convert.ToDouble(ViewBag.TotalEgresos ?? 0.0);
+    var balance = Convert.ToDouble(ViewBag.Balance ?? 0.0);
+    var actividades = (ViewBag.Actividades as IEnumerable<syswb_Taller.Models.MovimientoFinanciero>) ?? Enumerable.Empty<syswb_Taller.Models.MovimientoFinanciero>();
+    var ordenes = (ViewBag.Ordenes as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
 
     // Filtros actuales
     int selYear = (int)(ViewBag.SelectedYear ?? DateTime.Today.Year);
@@ -239,18 +239,18 @@
                                 <td>@o.IdOrden</td>
                                 <td>
                                     @(o.OrFechaCreacion != null
-                                        ? ((DateTime)o.OrFechaCreacion).ToString("g")
+                                        ? Convert.ToDateTime(o.OrFechaCreacion).ToString("g")
                                         : "-")
                                 </td>
                                 <td>@o.OrEstado</td>
                                 <td>
                                     @(o.FechaPago != null
-                                        ? ((DateTime)o.FechaPago).ToString("g")
+                                        ? Convert.ToDateTime(o.FechaPago).ToString("g")
                                         : "-")
                                 </td>
                                 <td class="text-end">
                                     @(o.MontoPagado != null
-                                        ? ((decimal)o.MontoPagado).ToString("C2", nicaragua)
+                                        ? Convert.ToDecimal(o.MontoPagado).ToString("C2", nicaragua)
                                         : "-")
                                 </td>
                             </tr>

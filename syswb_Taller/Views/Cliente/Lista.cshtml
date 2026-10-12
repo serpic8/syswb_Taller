@@ -1,4 +1,4 @@
-﻿@model List<dynamic>
+@model List<dynamic>
 @{
     ViewBag.Title = "Listado de Clientes";
     bool? filtroActivo = ViewBag.FiltroActivo as bool?;
@@ -148,7 +148,7 @@
                 {
                     foreach (var c in clientes)
                     {
-                        <tr ondblclick="window.location='@Url.Action("Editar", "Cliente", new { id = c.IdCliente })'" style="cursor:pointer;">
+                        <tr ondblclick="window.location='@Url.Action("Editar", "Cliente", new { idCliente = c.IdCliente })'" style="cursor:pointer;">
                             <td>@c.IdCliente</td>
                             <td>@c.Nombre</td>
                             <td>@c.Apellido</td>
@@ -170,7 +170,7 @@
                                     </button>
                                 </form>
                             </td>
-                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Editar" asp-route-id="@c.IdCliente"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Editar</a></td>
+                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Editar" asp-route-idCliente="@c.IdCliente"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Editar</a></td>
                         </tr>
                     }
                 }

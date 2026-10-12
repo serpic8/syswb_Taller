@@ -1,4 +1,4 @@
-﻿@model dynamic
+@model dynamic
 @using System.Globalization
 
 @{
@@ -6,8 +6,8 @@
     bool esCreacion = idPresupuesto == 0;
     bool aprobado = Model?.Estado ?? false;
     ViewBag.Title = esCreacion ? "Nuevo Presupuesto" : "Editar Presupuesto";
-    DateTime fecha = esCreacion ? DateTime.Now : Model.Fecha;
-    double costoTotal = esCreacion ? 0.0 : Model.CostoTotal;
+    DateTime fecha = esCreacion ? DateTime.Now : Convert.ToDateTime(Model?.Fecha ?? DateTime.Now);
+    double costoTotal = esCreacion ? 0.0 : Convert.ToDouble(Model?.CostoTotal ?? 0.0);
     var niCulture = new CultureInfo("es-NI");
     var packs = ViewBag.Packs as List<syswb_Taller.Models.PackReparacion> ?? new();
     var productos = ViewBag.Productos as List<syswb_Taller.Models.ProductoRepuesto> ?? new();
@@ -152,7 +152,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Descripción de la falla</label>
-                            <textarea name="preFalla" class="form-control" rows="3" required>@(esCreacion ? "" : Model.PreFalla)</textarea>
+                            <textarea name="preFalla" class="form-control" rows="3" required>@(esCreacion ? "" : (string)(Model?.PreFalla ?? ""))</textarea>
                             <div class="invalid-feedback">La descripción es obligatoria.</div>
                         </div>
                         <div class="col-12 text-end">
@@ -191,7 +191,7 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label">Descripción de la falla</label>
-                        <textarea class="form-control" rows="3" readonly>@Model.PreFalla</textarea>
+                        <textarea class="form-control" rows="3" readonly>@(Model?.PreFalla ?? "")</textarea>
                     </div>
                     <div class="col-12 text-end">
                         <a asp-action="Lista" class="btn btn-outline-secondary ms-2">

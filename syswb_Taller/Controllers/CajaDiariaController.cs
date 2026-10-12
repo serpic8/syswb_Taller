@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using syswb_Taller.Data;
 using syswb_Taller.Models;
 
 namespace syswb_Taller.Controllers
@@ -17,7 +17,7 @@ namespace syswb_Taller.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
+        [Authorize(Roles = RolesSistema.Gestion)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AbrirCaja(int? anio, int? mes)
         {
@@ -41,7 +41,7 @@ namespace syswb_Taller.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
+        [Authorize(Roles = RolesSistema.Gestion)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CerrarCaja(int? anio, int? mes)
         {
@@ -55,33 +55,26 @@ namespace syswb_Taller.Controllers
             return RedirectToAction(nameof(Lista), new { anio = y, mes = m });
         }
 
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
+        [Authorize(Roles = RolesSistema.Gestion)]
         public async Task<IActionResult> Lista(int? anio, int? mes)
         {
             int y = anio ?? DateTime.Today.Year;
             int m = mes ?? DateTime.Today.Month;
 
             var resumen = new List<dynamic>();
-            using var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-
-            using (var cmd = conn.CreateCommand())
+            await using (var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync(
+                "dbo.Get_CajaDiariaResumen", ("@Anio", y), ("@Mes", m)))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
-                cmd.CommandText = "dbo.Get_CajaDiariaResumen";
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new SqlParameter("@Anio", y));
-                cmd.Parameters.Add(new SqlParameter("@Mes", m));
-
-                using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
                     resumen.Add(new
                     {
                         IdCaja = reader.GetInt32(0),        
-                        Fecha = reader.GetDateTime(1).Date,
-                        Ingreso = reader.GetDouble(2),
-                        Egreso = reader.GetDouble(3),
-                        Balance = reader.GetDouble(4)
+                        Fecha = reader.GetNullableDateTime(1)?.Date ?? DateTime.Today,
+                        Ingreso = reader.GetNullableDouble(2) ?? 0.0,
+                        Egreso = reader.GetNullableDouble(3) ?? 0.0,
+                        Balance = reader.GetNullableDouble(4) ?? 0.0
                     });
                 }
             }
@@ -98,36 +91,27 @@ namespace syswb_Taller.Controllers
             return View();
         }
 
-
-
-        [Authorize(Roles = "Administrador, Cajero, Supervisor")]
+        [Authorize(Roles = RolesSistema.Gestion)]
         [HttpGet]
         public async Task<IActionResult> Detalle(int idCaja, DateTime fecha)
         {
             var dtDetail = new DataTable();
             var dtResumen = new DataTable();
 
-            using var conn = _bdTallerContext.Database.GetDbConnection();
-            await conn.OpenAsync();
-
-            using (var cmd = conn.CreateCommand())
+            await using (var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync(
+                "dbo.Get_CajaDiariaDetalleFinanzas",
+                ("@Fecha", fecha.Date),
+                ("@IdCaja", idCaja)))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
-                cmd.CommandText = "Get_CajaDiariaDetalleFinanzas";
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new SqlParameter("@Fecha", SqlDbType.Date) { Value = fecha.Date });
-                cmd.Parameters.Add(new SqlParameter("@IdCaja", SqlDbType.Int) { Value = idCaja });
-
-                using var reader = await cmd.ExecuteReaderAsync();
                 dtDetail.Load(reader);
             }
 
-            using (var cmd = conn.CreateCommand())
+            await using (var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync(
+                "dbo.Get_CajaDiariaIngresosEgresosPorDia",
+                ("@IdCaja", idCaja)))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
-                cmd.CommandText = "Get_CajaDiariaIngresosEgresosPorDia";
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new SqlParameter("@IdCaja", SqlDbType.Int) { Value = idCaja });
-
-                using var reader = await cmd.ExecuteReaderAsync();
                 dtResumen.Load(reader);
             }
 
@@ -138,6 +122,5 @@ namespace syswb_Taller.Controllers
 
             return View();
         }
-
     }
 }

@@ -7,6 +7,7 @@ using syswb_Taller.Models;
 
 namespace syswb_Taller.Controllers;
 
+[Route("Vehiculo")]
 public class VehiculoController : Controller
 {
     private readonly BdTallerContext _bdTallerContext;
@@ -18,6 +19,7 @@ public class VehiculoController : Controller
 
     // NOTA: Get_Vehiculos no devuelve idCliente, por eso idCliente solo se pasa a la vista
     // y no se usa como filtro.
+    [HttpGet("")]
     [HttpGet("Lista")]
     [Authorize(Roles = RolesSistema.Todos)]
     public async Task<IActionResult> Lista(int? idCliente = null, string? matricula = null, string? marca = null, bool? activo = null)
@@ -35,12 +37,12 @@ public class VehiculoController : Controller
                 vehiculos.Add(new
                 {
                     IdVehiculo = reader.GetInt32(0),
-                    vhMatricula = reader.GetString(1),
-                    vhMarca = reader.GetString(2),
-                    vhModelo = reader.GetString(3),
-                    vhAño = reader.GetInt32(4),
-                    vhColor = reader.GetString(5),
-                    vhActivo = reader.GetBoolean(6)
+                    vhMatricula = reader.GetNullableString(1) ?? string.Empty,
+                    vhMarca = reader.GetNullableString(2) ?? string.Empty,
+                    vhModelo = reader.GetNullableString(3) ?? string.Empty,
+                    vhAño = reader.IsDBNull(4) ? 0 : reader.GetInt32(4),
+                    vhColor = reader.GetNullableString(5) ?? string.Empty,
+                    vhActivo = !reader.IsDBNull(6) && reader.GetBoolean(6)
                 });
             }
         }
@@ -69,9 +71,9 @@ public class VehiculoController : Controller
                 clientes.Add(new
                 {
                     IdCliente = reader.GetInt32(0),
-                    Nombre = reader.GetString(1),
-                    Apellido = reader.GetString(2),
-                    Telefono = reader.GetString(3)
+                    Nombre = reader.GetNullableString(1) ?? string.Empty,
+                    Apellido = reader.GetNullableString(2) ?? string.Empty,
+                    Telefono = reader.GetNullableString(3) ?? string.Empty
                 });
             }
         }
@@ -84,7 +86,6 @@ public class VehiculoController : Controller
 
     // Formulario de creación de vehículo para un cliente dado
     [HttpGet("Crear")]
-    [Authorize(Roles = RolesSistema.Gestion)]
     public async Task<IActionResult> Crear(int? idCliente, string? redirigirA = null)
     {
         if (!idCliente.HasValue)
@@ -127,7 +128,7 @@ public class VehiculoController : Controller
         var outIdVehiculo = cmd.AddOutputParameter("@idVehiculo", SqlDbType.Int);
 
         await cmd.ExecuteNonQueryAsync();
-        int idVehiculo = (int)outIdVehiculo.Value;
+        int idVehiculo = outIdVehiculo.Value is int outId ? outId : (int.TryParse(outIdVehiculo.Value?.ToString(), out var p) ? p : 0);
 
         return redirigirA switch
         {
@@ -137,10 +138,14 @@ public class VehiculoController : Controller
         };
     }
 
-    [HttpGet("Editar")]
+    [HttpGet("Editar/{id?}")]
     [Authorize(Roles = RolesSistema.Gestion)]
-    public async Task<IActionResult> Editar(int id)
+    public async Task<IActionResult> Editar(int? id, [FromQuery(Name = "id")] int? queryId)
     {
+        int idFinal = id ?? queryId ?? 0;
+        if (idFinal <= 0)
+            return NotFound();
+
         const string sql = """
             SELECT vhMatricula, vhMarca, vhModelo, vhAño, vhColor, vhEstado, idCliente
               FROM Vehiculo
@@ -148,21 +153,21 @@ public class VehiculoController : Controller
             """;
 
         dynamic? vehiculo = null;
-        await using (var cmd = await _bdTallerContext.Database.CreateSqlCommandAsync(sql, ("@idVehiculo", id)))
+        await using (var cmd = await _bdTallerContext.Database.CreateSqlCommandAsync(sql, ("@idVehiculo", idFinal)))
         await using (var reader = await cmd.ExecuteReaderAsync())
         {
             if (await reader.ReadAsync())
             {
                 vehiculo = new
                 {
-                    IdVehiculo = id,
-                    Matricula = reader.GetString(0),
-                    Marca = reader.GetString(1),
-                    Modelo = reader.GetString(2),
-                    Año = reader.GetInt32(3),
-                    Color = reader.GetString(4),
-                    Estado = reader.GetString(5),
-                    IdCliente = reader.GetInt32(6)
+                    IdVehiculo = idFinal,
+                    Matricula = reader.GetNullableString(0) ?? string.Empty,
+                    Marca = reader.GetNullableString(1) ?? string.Empty,
+                    Modelo = reader.GetNullableString(2) ?? string.Empty,
+                    Año = reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
+                    Color = reader.GetNullableString(4) ?? string.Empty,
+                    Estado = reader.GetNullableString(5) ?? string.Empty,
+                    IdCliente = reader.IsDBNull(6) ? 0 : reader.GetInt32(6)
                 };
             }
         }

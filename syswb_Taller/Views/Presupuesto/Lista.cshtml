@@ -1,8 +1,8 @@
-﻿@model List<dynamic>
+@model List<dynamic>
 
 @{
     ViewBag.Title = "Listado de Presupuestos";
-    var list = Model;
+    var list = Model ?? new List<dynamic>();
     bool? filtroActivo = ViewBag.FiltroActivo as bool?;
 }
 

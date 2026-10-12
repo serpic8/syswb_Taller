@@ -29,9 +29,9 @@ public class ServicioController : Controller
                 servicios.Add(new Servicio
                 {
                     IdServicio = reader.GetInt32(0),
-                    SerNombre = reader.GetString(1),
-                    SerPrecioUnit = reader.GetDouble(2),
-                    SerActivo = reader.GetBoolean(3)
+                    SerNombre = reader.GetNullableString(1) ?? string.Empty,
+                    SerPrecioUnit = reader.GetNullableDouble(2) ?? 0.0,
+                    SerActivo = !reader.IsDBNull(3) && reader.GetBoolean(3)
                 });
             }
         }
@@ -74,8 +74,8 @@ public class ServicioController : Controller
                 servicio = new
                 {
                     IdServicio = reader.GetInt32(0),
-                    SerNombre = reader.GetString(1),
-                    SerPrecioUnit = reader.GetDouble(2)
+                    SerNombre = reader.GetNullableString(1) ?? string.Empty,
+                    SerPrecioUnit = reader.GetNullableDouble(2) ?? 0.0
                 };
             }
         }

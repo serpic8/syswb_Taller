@@ -92,14 +92,14 @@ public static class DbExtensions
     }
 
     public static string? GetNullableString(this DbDataReader reader, int ordinal) =>
-        reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
+        reader.IsDBNull(ordinal) ? null : reader.GetValue(ordinal)?.ToString();
 
     public static int? GetNullableInt32(this DbDataReader reader, int ordinal) =>
-        reader.IsDBNull(ordinal) ? null : reader.GetInt32(ordinal);
+        reader.IsDBNull(ordinal) ? null : Convert.ToInt32(reader.GetValue(ordinal));
 
     public static double? GetNullableDouble(this DbDataReader reader, int ordinal) =>
-        reader.IsDBNull(ordinal) ? null : reader.GetDouble(ordinal);
+        reader.IsDBNull(ordinal) ? null : Convert.ToDouble(reader.GetValue(ordinal));
 
     public static DateTime? GetNullableDateTime(this DbDataReader reader, int ordinal) =>
-        reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
+        reader.IsDBNull(ordinal) ? null : Convert.ToDateTime(reader.GetValue(ordinal));
 }

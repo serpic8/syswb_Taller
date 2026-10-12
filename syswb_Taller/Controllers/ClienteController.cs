@@ -32,11 +32,11 @@ public class ClienteController : Controller
                 clientes.Add(new
                 {
                     IdCliente = reader.GetInt32(0),
-                    Nombre = reader.GetString(1),
-                    Apellido = reader.GetString(2),
-                    Telefono = reader.GetString(3),
-                    OrdenesRealizadas = reader.GetInt32(4),
-                    Activo = reader.GetBoolean(5)
+                    Nombre = reader.GetNullableString(1) ?? string.Empty,
+                    Apellido = reader.GetNullableString(2) ?? string.Empty,
+                    Telefono = reader.GetNullableString(3) ?? string.Empty,
+                    OrdenesRealizadas = reader.IsDBNull(4) ? 0 : reader.GetInt32(4),
+                    Activo = !reader.IsDBNull(5) && reader.GetBoolean(5)
                 });
             }
         }
@@ -68,13 +68,13 @@ public class ClienteController : Controller
         await using var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync("Ins_Cliente",
             ("@pNombre", pNombre),
             ("@pApellido", pApellido),
-            ("@pTelefono", pTelefono.Replace("-", "")),
+            ("@pTelefono", pTelefono?.Replace("-", "") ?? string.Empty),
             ("@pCedula", pCedula),
             ("@clEmail", clEmail));
         var outIdCliente = cmd.AddOutputParameter("@OutIdCliente", SqlDbType.Int);
 
         await cmd.ExecuteNonQueryAsync();
-        int idCliente = (int)outIdCliente.Value;
+        int idCliente = outIdCliente.Value is int outId ? outId : (int.TryParse(outIdCliente.Value?.ToString(), out var p) ? p : 0);
 
         if (!string.IsNullOrEmpty(redirigirA))
             return RedirectToAction(nameof(VehiculoController.Crear), "Vehiculo", new { idCliente, redirigirA });
@@ -83,9 +83,13 @@ public class ClienteController : Controller
     }
 
     [Authorize(Roles = RolesSistema.Gestion)]
-    [HttpGet("Editar/{idCliente}")]
-    public async Task<IActionResult> Editar(int idCliente)
+    [HttpGet("Editar/{idCliente?}")]
+    public async Task<IActionResult> Editar(int? idCliente, [FromQuery(Name = "id")] int? queryId)
     {
+        int idFinal = idCliente ?? queryId ?? 0;
+        if (idFinal <= 0)
+            return NotFound();
+
         const string sqlCliente = """
             SELECT c.idCliente,
                    p.pNombre,
@@ -99,7 +103,7 @@ public class ClienteController : Controller
             """;
 
         dynamic? cliente = null;
-        await using (var cmd = await _bdTallerContext.Database.CreateSqlCommandAsync(sqlCliente, ("@idCliente", idCliente)))
+        await using (var cmd = await _bdTallerContext.Database.CreateSqlCommandAsync(sqlCliente, ("@idCliente", idFinal)))
         await using (var reader = await cmd.ExecuteReaderAsync())
         {
             if (await reader.ReadAsync())
@@ -121,7 +125,7 @@ public class ClienteController : Controller
 
         var vehiculos = new List<dynamic>();
         await using (var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync(
-            "Get_VehiculosPorCliente", ("@idCliente", idCliente)))
+            "Get_VehiculosPorCliente", ("@idCliente", idFinal)))
         await using (var reader = await cmd.ExecuteReaderAsync())
         {
             while (await reader.ReadAsync())
@@ -136,28 +140,35 @@ public class ClienteController : Controller
         }
 
         var ordenes = new List<dynamic>();
-        await using (var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync("Get_OrdenesPorCliente",
-            ("@idCliente", idCliente),
-            ("@fechaDesde", DBNull.Value),
-            ("@fechaHasta", DBNull.Value),
-            ("@orEstado", DBNull.Value)))
-        await using (var reader = await cmd.ExecuteReaderAsync())
+        try
         {
-            while (await reader.ReadAsync())
+            await using (var cmd = await _bdTallerContext.Database.CreateStoredProcedureAsync("Get_OrdenesPorCliente",
+                ("@idCliente", idFinal),
+                ("@fechaDesde", DBNull.Value),
+                ("@fechaHasta", DBNull.Value),
+                ("@orEstado", DBNull.Value)))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
-                ordenes.Add(new
+                while (await reader.ReadAsync())
                 {
-                    IdOrden = reader.GetInt32(0),
-                    FechaCreacion = reader.GetDateTime(1),
-                    Estado = reader.GetNullableString(2),
-                    Tipo = reader.GetNullableString(3),
-                    FechaEntrega = reader.GetNullableDateTime(4),
-                    FechaFin = reader.GetNullableDateTime(5),
-                    CostoTotal = reader.GetDouble(6),
-                    VehiculoMatric = reader.GetNullableString(7),
-                    VehiculoMarca = reader.GetNullableString(8)
-                });
+                    ordenes.Add(new
+                    {
+                        IdOrden = reader.GetInt32(0),
+                        FechaCreacion = reader.GetDateTime(1),
+                        Estado = reader.GetNullableString(2),
+                        Tipo = reader.GetNullableString(3),
+                        FechaEntrega = reader.GetNullableDateTime(4),
+                        FechaFin = reader.GetNullableDateTime(5),
+                        CostoTotal = reader.GetNullableDouble(6) ?? 0.0,
+                        VehiculoMatric = reader.GetNullableString(7),
+                        VehiculoMarca = reader.GetNullableString(8)
+                    });
+                }
             }
+        }
+        catch (Microsoft.Data.SqlClient.SqlException)
+        {
+            // El procedimiento Get_OrdenesPorCliente arroja RAISERROR si el cliente está inactivo
         }
 
         ViewBag.Cliente = cliente;
@@ -182,7 +193,7 @@ public class ClienteController : Controller
             ("@idCliente", idCliente),
             ("@pNombre", pNombre),
             ("@pApellido", pApellido),
-            ("@pTelefono", pTelefono.Replace("-", "")),
+            ("@pTelefono", pTelefono?.Replace("-", "") ?? string.Empty),
             ("@pCedula", pCedula),
             ("@clEmail", clEmail));
 

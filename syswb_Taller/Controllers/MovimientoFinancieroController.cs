@@ -26,11 +26,14 @@ public class MovimientoFinancieroController : Controller
         await using var reader = await cmd.ExecuteReaderAsync();
 
         // 1) Totales
+        ViewBag.TotalIngresos = 0.0;
+        ViewBag.TotalEgresos = 0.0;
+        ViewBag.Balance = 0.0;
         if (await reader.ReadAsync())
         {
-            ViewBag.TotalIngresos = reader.GetDouble(0);
-            ViewBag.TotalEgresos = reader.GetDouble(1);
-            ViewBag.Balance = reader.GetDouble(2);
+            ViewBag.TotalIngresos = reader.GetNullableDouble(0) ?? 0.0;
+            ViewBag.TotalEgresos = reader.GetNullableDouble(1) ?? 0.0;
+            ViewBag.Balance = reader.GetNullableDouble(2) ?? 0.0;
         }
 
         // 2) Actividades
@@ -38,14 +41,17 @@ public class MovimientoFinancieroController : Controller
         var actividades = new List<MovimientoFinanciero>();
         while (await reader.ReadAsync())
         {
+            DateTime fechaMov = reader.GetNullableDateTime(0)
+                ?? (DateTime.TryParse(reader.GetValue(0)?.ToString(), out var dtParsed) ? dtParsed : DateTime.Now);
+
             actividades.Add(new MovimientoFinanciero
             {
-                MovFecha = DateTime.Parse(reader.GetString(0)),
-                MvTipoMovimiento = reader.GetString(1),
-                MovMonto = reader.GetDouble(2),
+                MovFecha = fechaMov,
+                MvTipoMovimiento = reader.GetNullableString(1) ?? string.Empty,
+                MovMonto = reader.GetNullableDouble(2) ?? 0.0,
                 IdPagoOrden = reader.GetNullableInt32(3),
                 IdCompra = reader.GetNullableInt32(4),
-                IdCaja = reader.GetInt32(5)
+                IdCaja = reader.GetNullableInt32(5) ?? 0
             });
         }
 
@@ -57,10 +63,10 @@ public class MovimientoFinancieroController : Controller
             ordenesConPago.Add(new
             {
                 IdOrden = reader.GetInt32(0),
-                OrFechaCreacion = reader.GetDateTime(1),
-                OrEstado = reader.GetString(2),
-                FechaPago = reader.GetDateTime(3),
-                MontoPagado = reader.GetDouble(4)
+                OrFechaCreacion = reader.GetNullableDateTime(1),
+                OrEstado = reader.GetNullableString(2) ?? string.Empty,
+                FechaPago = reader.GetNullableDateTime(3),
+                MontoPagado = reader.GetNullableDouble(4) ?? 0.0
             });
         }
 
@@ -100,13 +106,13 @@ public class MovimientoFinancieroController : Controller
                 movimientos.Add(new
                 {
                     IdMovimiento = reader.GetInt32(0),
-                    MovFecha = reader.GetDateTime(1),
-                    FechaCorta = reader.GetString(2),
-                    Hora = reader.GetString(3),
-                    TipoMovimiento = reader.GetString(4),
-                    Responsable = reader.GetString(5),
+                    MovFecha = reader.GetNullableDateTime(1) ?? DateTime.Now,
+                    FechaCorta = reader.GetNullableString(2) ?? string.Empty,
+                    Hora = reader.GetNullableString(3) ?? string.Empty,
+                    TipoMovimiento = reader.GetNullableString(4) ?? string.Empty,
+                    Responsable = reader.GetNullableString(5) ?? string.Empty,
                     MetodoPago = reader.GetNullableString(6) ?? "N/A",
-                    Monto = reader.GetDouble(7)
+                    Monto = reader.GetNullableDouble(7) ?? 0.0
                 });
             }
 

@@ -36,7 +36,10 @@ public class PersonaController : Controller
     [HttpGet]
     public async Task<IActionResult> Editar(int id)
     {
-        var persona = await _bdTallerContext.Personas.FirstAsync(p => p.IdPersona == id);
+        var persona = await _bdTallerContext.Personas.FirstOrDefaultAsync(p => p.IdPersona == id);
+        if (persona == null)
+            return NotFound();
+
         return View(persona);
     }
 
@@ -51,7 +54,10 @@ public class PersonaController : Controller
     [HttpGet]
     public async Task<IActionResult> Eliminar(int id)
     {
-        var persona = await _bdTallerContext.Personas.FirstAsync(p => p.IdPersona == id);
+        var persona = await _bdTallerContext.Personas.FirstOrDefaultAsync(p => p.IdPersona == id);
+        if (persona == null)
+            return NotFound();
+
         _bdTallerContext.Personas.Remove(persona);
         await _bdTallerContext.SaveChangesAsync();
         return RedirectToAction(nameof(Lista));

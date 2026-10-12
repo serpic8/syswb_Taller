@@ -1,7 +1,7 @@
-﻿@{
-    ViewBag.Title = "Caja " + ViewBag.IdCaja + " – " + ViewBag.Fecha;
-    var detail = ViewBag.Detail as System.Data.DataTable;
-    var resumen = ViewBag.Resumen as System.Data.DataTable;
+@{
+    ViewBag.Title = "Caja " + (ViewBag.IdCaja ?? "") + " – " + (ViewBag.Fecha ?? "");
+    var detail = ViewBag.Detail as System.Data.DataTable ?? new System.Data.DataTable();
+    var resumen = ViewBag.Resumen as System.Data.DataTable ?? new System.Data.DataTable();
 }
 
 @section Header { }
@@ -79,7 +79,8 @@
 
                                 if (col.ColumnName.Contains("Monto") || col.ColumnName.Contains("Ingreso") || col.ColumnName.Contains("Egreso") || col.ColumnName.Contains("Balance"))
                                 {
-                                    <td class="currency-cell">C$ @Convert.ToDecimal(value).ToString("N2")</td>
+                                    decimal decVal = (value != null && value != DBNull.Value && decimal.TryParse(value.ToString(), out var parsedDec)) ? parsedDec : 0m;
+                                    <td class="currency-cell">C$ @decVal.ToString("N2")</td>
                                 }
                                 else if (value is DateTime dt)
                                 {
@@ -123,7 +124,8 @@
 
                                 if (col.ColumnName.Contains("Monto") || col.ColumnName.Contains("Ingreso") || col.ColumnName.Contains("Egreso") || col.ColumnName.Contains("Balance"))
                                 {
-                                    <td class="currency-cell">C$ @Convert.ToDecimal(value).ToString("N2")</td>
+                                    decimal decVal = (value != null && value != DBNull.Value && decimal.TryParse(value.ToString(), out var parsedDec)) ? parsedDec : 0m;
+                                    <td class="currency-cell">C$ @decVal.ToString("N2")</td>
                                 }
                                 else if (value is DateTime dt)
                                 {

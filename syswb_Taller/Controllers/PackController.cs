@@ -249,14 +249,14 @@ public class PackController : Controller
     private Task<int?> ObtenerIdPackDeProductoAsync(int idDetalle) =>
         _bdTallerContext.DetallePackProductos
             .Where(d => d.IdDetalle == idDetalle)
-            .Select(d => d.IdPack)
-            .FirstAsync();
+            .Select(d => (int?)d.IdPack)
+            .FirstOrDefaultAsync();
 
     private Task<int?> ObtenerIdPackDeServicioAsync(int idDetalle) =>
         _bdTallerContext.DetallePackServicios
             .Where(d => d.IdDetalle == idDetalle)
-            .Select(d => d.IdPack)
-            .FirstAsync();
+            .Select(d => (int?)d.IdPack)
+            .FirstOrDefaultAsync();
 
     /// <summary>Productos y servicios activos para los desplegables.</summary>
     private async Task CargarProductosYServiciosAsync()

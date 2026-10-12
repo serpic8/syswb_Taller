@@ -1,4 +1,4 @@
-﻿@model syswb_Taller.Models.ProductoRepuesto
+@model syswb_Taller.Models.ProductoRepuesto
 @{
     ViewBag.Title = "Crear Producto";
 }
@@ -50,9 +50,9 @@
                     </label>
                     <select id="prMarca" name="prMarca" class="form-select form-select-lg select2" data-placeholder="Seleccione o escriba una marca">
                         <option></option>
-                        @if (ViewBag.Marcas != null)
+                        @if (ViewBag.Marcas is IEnumerable<string> marcas)
                         {
-                            foreach (string m in ViewBag.Marcas as List<string>)
+                            foreach (string m in marcas)
                             {
                                 <option value="@m">@m</option>
                             }
@@ -66,9 +66,9 @@
                     </label>
                     <select id="prCategoria" name="prCategoria" class="form-select form-select-lg select2" data-placeholder="Seleccione o escriba una categoría">
                         <option></option>
-                        @if (ViewBag.Categorias != null)
+                        @if (ViewBag.Categorias is IEnumerable<string> categorias)
                         {
-                            foreach (string c in ViewBag.Categorias as List<string>)
+                            foreach (string c in categorias)
                             {
                                 <option value="@c">@c</option>
                             }

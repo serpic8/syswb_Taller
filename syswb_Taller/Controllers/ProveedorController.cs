@@ -99,8 +99,16 @@ public class ProveedorController : Controller
     [HttpGet]
     public async Task<IActionResult> Productos(int idProveedor)
     {
-        var lista = await _bdTallerContext.Set<ProveedorProducto>()
-            .FromSqlRaw("EXEC Get_ProductosPorProveedor @idProveedor", new SqlParameter("@idProveedor", idProveedor))
+        var lista = await _bdTallerContext.ProveedorProductos
+            .Where(pp => pp.IdProveedor == idProveedor)
+            .Include(pp => pp.IdProductoNavigation)
+            .Select(pp => new
+            {
+                pp.IdProducto,
+                Producto = pp.IdProductoNavigation.PrNombre,
+                PrecioReferencia = pp.PrecioRef,
+                RelacionActiva = pp.Activo
+            })
             .ToListAsync();
 
         return Json(lista);
@@ -192,12 +200,12 @@ public class ProveedorController : Controller
                 {
                     IdProveedor = id,
                     IdProducto = reader.GetInt32(0),
-                    PrecioRef = reader.GetDouble(2),
-                    Activo = reader.GetBoolean(3),
+                    PrecioRef = reader.GetNullableDouble(2) ?? 0.0,
+                    Activo = !reader.IsDBNull(3) && reader.GetBoolean(3),
                     IdProductoNavigation = new ProductoRepuesto
                     {
                         IdProducto = reader.GetInt32(0),
-                        PrNombre = reader.GetString(1)
+                        PrNombre = reader.GetNullableString(1) ?? string.Empty
                     }
                 });
             }

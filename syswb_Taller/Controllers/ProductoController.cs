@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Diagnostics;
 using System.Dynamic;
+using syswb_Taller.Data;
 using syswb_Taller.Models;
 
 namespace syswb_Taller.Controllers
@@ -31,13 +32,13 @@ namespace syswb_Taller.Controllers
             cmd2.Parameters.AddWithValue("@id", idProducto);
 
             var resultado = await cmd2.ExecuteScalarAsync();
-            return resultado != DBNull.Value && (bool)resultado;
+            return resultado is bool b ? b : (resultado != null && resultado != DBNull.Value && Convert.ToBoolean(resultado));
         }
 
 
 
         [HttpGet]
-        [Authorize(Roles = "Administrador, Cajero, Supervisor, Mecanico")]
+        [Authorize(Roles = RolesSistema.Todos)]
         public async Task<IActionResult> Lista(string? nombre, string? marca, string? categoria, bool? activo)
         {
             var productos = new List<ProductoRepuesto>();
@@ -61,7 +62,7 @@ namespace syswb_Taller.Controllers
                     productos.Add(new ProductoRepuesto
                     {
                         IdProducto = reader.GetInt32(0),
-                        PrNombre = reader.IsDBNull(1) ? null : reader.GetString(1),
+                        PrNombre = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
                         PrMarca = reader.IsDBNull(2) ? null : reader.GetString(2),
                         PrCategoria = reader.IsDBNull(3) ? null : reader.GetString(3),
                         PrCosto = reader.IsDBNull(4) ? null : reader.GetDouble(4),
@@ -357,6 +358,12 @@ namespace syswb_Taller.Controllers
                 .Where(cp => cp.IdCompra == id && cp.CproActivo)
                 .Select(cp => new { cp.IdProducto, cp.CproCantidad })
                 .ToListAsync();
+
+            if (!detalles.Any())
+            {
+                TempData["ErrorMessage"] = $"La compra {id} no tiene productos asociados para devolver.";
+                return RedirectToAction(nameof(Lista));
+            }
 
             // 3) Verificar que haya suficiente stock para restar cada detalle
             var insuficientes = new List<int>();

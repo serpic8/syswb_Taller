@@ -8,7 +8,7 @@ public static class RolesSistema
     public const string Administrador = "Administrador";
     public const string Cajero = "Cajero";
     public const string Supervisor = "Supervisor";
-    public const string Mecanico = "Mecanico";
+    public const string Mecanico = "Mecanico,Mecánico";
 
     public const string AdminSupervisor = Administrador + "," + Supervisor;
     public const string Gestion = Administrador + "," + Cajero + "," + Supervisor;

@@ -39,14 +39,20 @@ public class EmpleadoController : Controller
         {
             while (await reader.ReadAsync())
             {
+                int ordNombre = reader.GetOrdinal("pNombre");
+                int ordApellido = reader.GetOrdinal("pApellido");
+                int ordTelefono = reader.GetOrdinal("pTelefono");
+                int ordRol = reader.GetOrdinal("Rol");
+                int ordActivo = reader.GetOrdinal("Activo");
+
                 empleados.Add(new EmpleadoDto
                 {
                     IdEmpleado = reader.GetInt32(reader.GetOrdinal("idEmpleado")),
-                    PNombre = reader.GetString(reader.GetOrdinal("pNombre")),
-                    PApellido = reader.GetString(reader.GetOrdinal("pApellido")),
-                    PTelefono = reader.GetString(reader.GetOrdinal("pTelefono")),
-                    RTipo = reader.GetString(reader.GetOrdinal("Rol")),
-                    EmpActivo = reader.GetBoolean(reader.GetOrdinal("Activo"))
+                    PNombre = reader.IsDBNull(ordNombre) ? string.Empty : reader.GetString(ordNombre),
+                    PApellido = reader.IsDBNull(ordApellido) ? string.Empty : reader.GetString(ordApellido),
+                    PTelefono = reader.IsDBNull(ordTelefono) ? string.Empty : reader.GetString(ordTelefono),
+                    RTipo = reader.IsDBNull(ordRol) ? string.Empty : reader.GetString(ordRol),
+                    EmpActivo = !reader.IsDBNull(ordActivo) && reader.GetBoolean(ordActivo)
                 });
             }
         }
@@ -75,13 +81,13 @@ public class EmpleadoController : Controller
         {
             await _bdTallerContext.Database.ExecuteSqlRawAsync(
                 "EXEC Ins_Empleado @pNombre, @pApellido, @pTelefono, @pCedula, @empUsuario, @idRol, @contrasena_texto",
-                new SqlParameter("@pNombre", pNombre),
-                new SqlParameter("@pApellido", pApellido),
-                new SqlParameter("@pTelefono", pTelefono),
-                new SqlParameter("@pCedula", pCedula),
-                new SqlParameter("@empUsuario", empUsuario),
+                new SqlParameter("@pNombre", pNombre ?? string.Empty),
+                new SqlParameter("@pApellido", pApellido ?? string.Empty),
+                new SqlParameter("@pTelefono", pTelefono ?? (object)DBNull.Value),
+                new SqlParameter("@pCedula", pCedula ?? string.Empty),
+                new SqlParameter("@empUsuario", empUsuario ?? string.Empty),
                 new SqlParameter("@idRol", idRol),
-                new SqlParameter("@contrasena_texto", contrasena_texto));
+                new SqlParameter("@contrasena_texto", contrasena_texto ?? string.Empty));
 
             TempData["SuccessMessage"] = "Empleado registrado correctamente.";
             return RedirectToAction(nameof(Lista));
@@ -89,6 +95,7 @@ public class EmpleadoController : Controller
         catch (SqlException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
+            await CargarRolesAsync();
             return View();
         }
     }
@@ -115,11 +122,11 @@ public class EmpleadoController : Controller
             await _bdTallerContext.Database.ExecuteSqlRawAsync(
                 "EXEC Upd_Empleado @idEmpleado, @pNombre, @pApellido, @pTelefono, @pCedula, @empUsuario, @idRol, @contrasena_texto",
                 new SqlParameter("@idEmpleado", idEmpleado),
-                new SqlParameter("@pNombre", pNombre),
-                new SqlParameter("@pApellido", pApellido),
-                new SqlParameter("@pTelefono", pTelefono),
-                new SqlParameter("@pCedula", pCedula),
-                new SqlParameter("@empUsuario", empUsuario),
+                new SqlParameter("@pNombre", pNombre ?? string.Empty),
+                new SqlParameter("@pApellido", pApellido ?? string.Empty),
+                new SqlParameter("@pTelefono", pTelefono ?? (object)DBNull.Value),
+                new SqlParameter("@pCedula", pCedula ?? string.Empty),
+                new SqlParameter("@empUsuario", empUsuario ?? string.Empty),
                 new SqlParameter("@idRol", idRol),
                 new SqlParameter("@contrasena_texto", (object?)contrasena_texto ?? DBNull.Value));
 
@@ -129,6 +136,7 @@ public class EmpleadoController : Controller
         catch (SqlException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
+            await CargarRolesAsync();
             return View(await BuscarEmpleadoAsync(idEmpleado));
         }
     }

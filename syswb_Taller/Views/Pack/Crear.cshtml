@@ -1,4 +1,4 @@
-﻿@model dynamic
+@model dynamic
 @using System.Globalization
 @{
     ViewBag.Title = "Crear Pack de Reparación";
@@ -8,7 +8,7 @@
     var detalles = ViewBag.Detalles as List<dynamic> ?? new List<dynamic>();
     double costo = ViewBag.CostoTotal != null ? (double)ViewBag.CostoTotal : 0.0;
     var niCulture = new CultureInfo("es-NI");
-    bool esEdicion = pack != null && pack.IdPack != 0;
+    bool esEdicion = pack != null && ((int?)pack?.IdPack ?? 0) != 0;
 }
 
 @section Styles {

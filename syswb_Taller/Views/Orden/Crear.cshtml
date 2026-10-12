@@ -1,4 +1,4 @@
-﻿@model dynamic
+@model dynamic
 @using System.Globalization
 
 @{
@@ -9,7 +9,7 @@
     string fechaEntregaStr = "";
     if (!esCreacion)
     {
-        var dt = (DateTime?)Model.OrFechaEntrega;
+        var dt = (DateTime?)Model?.OrFechaEntrega;
         fechaEntregaStr = dt.HasValue
             ? dt.Value.ToString("yyyy-MM-dd")
             : "";
@@ -18,7 +18,7 @@
     // --- costoTotal como decimal, igual que en BD ---
     decimal costoTotal = esCreacion
         ? 0m
-        : (decimal)Model.OrCostoTotal;
+        : Convert.ToDecimal(Model?.OrCostoTotal ?? 0);
 
     var niCulture = new CultureInfo("es-NI");
 
@@ -82,7 +82,7 @@
                 <div class="col-md-4">
                     <label class="form-label">Fecha Creación</label>
                     <input class="form-control"
-                           value="@(esCreacion ? DateTime.Now.ToString("dd/MM/yyyy") : ((DateTime)Model.OrFechaCreacion).ToString("dd/MM/yyyy"))"
+                           value="@(esCreacion ? DateTime.Now.ToString("dd/MM/yyyy") : ((DateTime?)Model?.OrFechaCreacion)?.ToString("dd/MM/yyyy") ?? "-")"
                            readonly />
                 </div>
                 <div class="col-md-4">
@@ -103,7 +103,7 @@
                     <label class="form-label">Asignar Mecánico</label>
                     <select name="idMecanicoTemp" class="form-select select2">
                         <option></option>
-                        @foreach (var m in ViewBag.Mecanicos as IEnumerable<dynamic>)
+                        @foreach (var m in (ViewBag.Mecanicos as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>())
                         {
                             <option value="@m.IdEmpleado">@m.NombreCompleto</option>
                         }
@@ -114,9 +114,9 @@
                     <label class="form-label">Estado</label>
                     <select name="orEstado" class="form-select select2" required>
                         <!option></!option>
-                        @foreach (var st in (string[])ViewBag.Estados)
+                        @foreach (var st in (ViewBag.Estados as IEnumerable<string>) ?? Enumerable.Empty<string>())
                         {
-                            <!option value="@st" @(!esCreacion && st == Model.OrEstado ? "selected" : "")>@st</!option>
+                            <!option value="@st" @(!esCreacion && st == (string?)Model?.OrEstado ? "selected" : "")>@st</!option>
                         }
                     </select>
                     <div class="invalid-feedback">Estado es obligatorio.</div>
@@ -125,9 +125,9 @@
                     <label class="form-label">Tipo</label>
                     <select name="orTipo" class="form-select select2" required>
                         <option></option>
-                        @foreach (var tp in (string[])ViewBag.Tipos)
+                        @foreach (var tp in (ViewBag.Tipos as IEnumerable<string>) ?? Enumerable.Empty<string>())
                         {
-                            <!option value="@tp" @(!esCreacion && tp == Model.OrTipo ? "selected" : "")>@tp</!option>
+                            <!option value="@tp" @(!esCreacion && tp == (string?)Model?.OrTipo ? "selected" : "")>@tp</!option>
                         }
                     </select>
                     <div class="invalid-feedback">Tipo es obligatorio.</div>
@@ -144,7 +144,7 @@
 
                 <div class="col-12">
                     <label class="form-label">Descripción de la falla</label>
-                    <textarea name="orFalla" class="form-control" rows="3" required>@(esCreacion ? string.Empty : Model.OrFalla)</textarea>
+                    <textarea name="orFalla" class="form-control" rows="3" required>@(esCreacion ? string.Empty : (string?)Model?.OrFalla ?? string.Empty)</textarea>
                     <div class="invalid-feedback">Describe la falla.</div>
                 </div>
 
@@ -166,7 +166,7 @@
                     </a>
                     <button type="button"
                             class="btn btn-info"
-                            onclick="location.href='@Url.Action("AgregarEntrega", new { idOrden = Model.IdOrden })'"
+                            onclick="location.href='@Url.Action("AgregarEntrega", new { idOrden = idOrden })'"
                     @(((bool?)(ViewBag.YaPago) ?? false) ? "" : "disabled")>
                         <i class="bi bi-truck me-1"></i>Registrar Entrega
                     </button>

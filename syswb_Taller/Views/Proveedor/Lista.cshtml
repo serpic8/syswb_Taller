@@ -1,4 +1,4 @@
-﻿@model List<syswb_Taller.Models.Proveedor>
+@model List<syswb_Taller.Models.Proveedor>
 @using System.Globalization
 @removeTagHelper "Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers"
 @{
@@ -12,49 +12,51 @@
 @section Header { }
 @section Footer { }
 
-<style>
-    .filter-bar {
-        background: #fff;
-        padding: 1rem;
-        border-radius: .5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
-    }
-
-        .filter-bar .btn-group a.active {
-            background-color: #0097cc;
-            color: #fff;
-            border-color: #0097cc;
+@section Styles {
+    <style>
+        .filter-bar {
+            background: #fff;
+            padding: 1rem;
+            border-radius: .5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
         }
 
-    .table-card {
-        border-radius: .5rem;
-        overflow: hidden;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-    }
+            .filter-bar .btn-group a.active {
+                background-color: #0097cc;
+                color: #fff;
+                border-color: #0097cc;
+            }
 
-        .table-card .card-header {
-            background: #0097cc;
-            color: #fff;
-            font-weight: 600;
+        .table-card {
+            border-radius: .5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
         }
 
-        .table-card tbody tr:hover {
-            background: rgba(0,151,204,0.1);
+            .table-card .card-header {
+                background: #0097cc;
+                color: #fff;
+                font-weight: 600;
+            }
+
+            .table-card tbody tr:hover {
+                background: rgba(0,151,204,0.1);
+                cursor: pointer;
+            }
+        /* Quitar puntero solo en botones de toggle para evitar confusión */
+        .toggle-btn {
             cursor: pointer;
+            border: none;
+            background: transparent;
+            padding: 0;
+            color: inherit;
         }
-    /* Quitar puntero solo en botones de toggle para evitar confusión */
-    .toggle-btn {
-        cursor: pointer;
-        border: none;
-        background: transparent;
-        padding: 0;
-        color: inherit;
-    }
-</style>
+    </style>
+}
 
 <div class="d-flex justify-content-end mb-3">
-    <a asp-controller="Home" asp-action="Index"
+    <a asp-controller="Menu" asp-action="Menu"
        class="btn btn-outline-primary btn-lg shadow-sm d-flex align-items-center gap-2">
         <i class="bi bi-house-door-fill fs-5"></i>
         <span>Menú Principal</span>

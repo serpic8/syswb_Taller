@@ -1,184 +1,996 @@
+@using System.Security.Claims
 @{
-    ViewData["Title"] = "Panel de trabajo";
+    ViewData["Title"] = "Panel de Control";
     var usuario = User.Identity?.Name ?? "Usuario";
+    var rol = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "Personal";
     var cajaAbierta = ViewBag.CajaAbierta as bool? ?? false;
 }
 
 @section Header { }
 @section Footer { }
 
-<div class="workshop-dashboard">
-    <header class="dashboard-header">
-        <a class="dashboard-brand" asp-controller="Menu" asp-action="Menu" aria-label="Taller Plus, inicio">
-            <span class="brand-mark"><i class="bi bi-wrench-adjustable-circle-fill" aria-hidden="true"></i></span>
-            <span>Taller<span class="brand-accent">+</span><small>Gestión operativa</small></span>
+@section Styles {
+    <style>
+        :root {
+            --color-orden: #2563eb;
+            --color-presupuesto: #10b981;
+            --color-clientes: #6366f1;
+            --color-vehiculos: #f59e0b;
+            --color-inventario: #06b6d4;
+            --color-servicios: #ef4444;
+            --color-packs: #8b5cf6;
+            --color-caja: #14b8a6;
+            --color-finanzas: #f97316;
+            --color-personal: #3b82f6;
+            --color-proveedores: #d97706;
+        }
+
+        body {
+            background: #090e17 !important;
+        }
+
+        .dashboard-container {
+            min-height: 100vh;
+            background: 
+                radial-gradient(circle at 12% 10%, rgba(37, 99, 235, 0.22) 0%, transparent 45%),
+                radial-gradient(circle at 88% 15%, rgba(245, 158, 11, 0.16) 0%, transparent 42%),
+                radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.15) 0%, transparent 45%),
+                linear-gradient(145deg, #090e1a 0%, #0c172e 45%, #070d18 100%);
+            color: #f1f5f9;
+            padding-bottom: 3.5rem;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        /* Top Bar */
+        .dash-topbar {
+            background: rgba(10, 18, 36, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.85rem clamp(1rem, 4vw, 3.5rem);
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .dash-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.8rem;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.35rem;
+            letter-spacing: -0.02em;
+        }
+
+        .dash-brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #0097cc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.45rem;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+        }
+
+        .dash-brand-text span {
+            color: #f59e0b;
+        }
+
+        .dash-brand-text small {
+            display: block;
+            font-size: 0.68rem;
+            color: #94a3b8;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .dash-user-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* Status Pill */
+        .cash-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.38rem 0.85rem;
+            border-radius: 50rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.04);
+            transition: all 0.2s ease;
+        }
+
+        .cash-pill.is-open {
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .cash-pill.is-closed {
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .pulse-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: currentColor;
+            display: inline-block;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulseAnim 2s infinite ease-in-out;
+        }
+
+        @@keyframes pulseAnim {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.15); }
+        }
+
+        .live-clock-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            color: #cbd5e1;
+            font-size: 0.84rem;
+            font-variant-numeric: tabular-nums;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.38rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .user-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.32rem 0.85rem;
+            border-radius: 50rem;
+            color: #fff;
+            font-size: 0.86rem;
+            font-weight: 600;
+        }
+
+        .user-chip-role {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 50rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            background: #2563eb;
+            color: #fff;
+        }
+
+        /* Hero Header */
+        .hero-banner {
+            max-width: 1440px;
+            margin: 2.25rem auto 1.75rem;
+            padding: 0 clamp(1rem, 4vw, 3.5rem);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-title-group h1 {
+            font-size: clamp(1.8rem, 3.4vw, 2.45rem);
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 0.35rem;
+            letter-spacing: -0.025em;
+        }
+
+        .hero-title-group p {
+            color: #94a3b8;
+            font-size: 1.05rem;
+            margin: 0;
+        }
+
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-action-hero {
+            padding: 0.65rem 1.35rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-action-hero:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Module Sections */
+        .dashboard-content {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 clamp(1rem, 4vw, 3.5rem);
+        }
+
+        .category-block {
+            margin-bottom: 2.25rem;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-bottom: 1.15rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .category-header h2 {
+            font-size: 1.18rem;
+            font-weight: 750;
+            color: #f8fafc;
+            margin: 0;
+            letter-spacing: -0.015em;
+        }
+
+        .category-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.86rem;
+        }
+
+        .category-badge-pill {
+            font-size: 0.68rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 50rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+        }
+
+        /* Colorful Modern Grid */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 1.25rem;
+        }
+
+        /* Colorful Module Card */
+        .color-card {
+            position: relative;
+            background: rgba(15, 25, 48, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 1.5rem 1.4rem;
+            text-decoration: none;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 165px;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .color-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--card-color, #2563eb);
+            opacity: 0.85;
+            transition: height 0.2s ease, opacity 0.2s ease;
+        }
+
+        .color-card::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle, var(--card-glow, rgba(37, 99, 235, 0.18)) 0%, transparent 70%);
+            pointer-events: none;
+            opacity: 0.5;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .color-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.22);
+            box-shadow: 0 16px 36px var(--card-shadow, rgba(0, 0, 0, 0.45));
+            color: #fff;
+        }
+
+        .color-card:hover::before {
+            height: 5px;
+            opacity: 1;
+        }
+
+        .color-card:hover::after {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .color-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .color-card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: var(--card-gradient, linear-gradient(135deg, #2563eb, #1d4ed8));
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.65rem;
+            box-shadow: 0 6px 18px var(--icon-shadow, rgba(37, 99, 235, 0.4));
+            transition: transform 0.2s ease;
+        }
+
+        .color-card:hover .color-card-icon {
+            transform: scale(1.08) rotate(-2deg);
+        }
+
+        .color-card-arrow {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+        }
+
+        .color-card:hover .color-card-arrow {
+            background: var(--card-color, #2563eb);
+            color: #fff;
+            transform: translateX(3px);
+        }
+
+        .color-card-info h3 {
+            font-size: 1.15rem;
+            font-weight: 750;
+            margin: 0 0 0.35rem;
+            color: #fff;
+            letter-spacing: -0.01em;
+        }
+
+        .color-card-info p {
+            font-size: 0.86rem;
+            color: #94a3b8;
+            margin: 0;
+            line-height: 1.45;
+        }
+
+        /* Specific Card Color Definitions */
+        .card-orden {
+            --card-color: #2563eb;
+            --card-glow: rgba(37, 99, 235, 0.28);
+            --card-shadow: rgba(37, 99, 235, 0.25);
+            --card-gradient: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            --icon-shadow: rgba(37, 99, 235, 0.45);
+        }
+
+        .card-presupuesto {
+            --card-color: #10b981;
+            --card-glow: rgba(16, 185, 129, 0.28);
+            --card-shadow: rgba(16, 185, 129, 0.25);
+            --card-gradient: linear-gradient(135deg, #34d399, #059669);
+            --icon-shadow: rgba(16, 185, 129, 0.45);
+        }
+
+        .card-clientes {
+            --card-color: #6366f1;
+            --card-glow: rgba(99, 102, 241, 0.28);
+            --card-shadow: rgba(99, 102, 241, 0.25);
+            --card-gradient: linear-gradient(135deg, #818cf8, #4f46e5);
+            --icon-shadow: rgba(99, 102, 241, 0.45);
+        }
+
+        .card-vehiculos {
+            --card-color: #f59e0b;
+            --card-glow: rgba(245, 158, 11, 0.28);
+            --card-shadow: rgba(245, 158, 11, 0.25);
+            --card-gradient: linear-gradient(135deg, #fbbf24, #d97706);
+            --icon-shadow: rgba(245, 158, 11, 0.45);
+        }
+
+        .card-inventario {
+            --card-color: #06b6d4;
+            --card-glow: rgba(6, 182, 212, 0.28);
+            --card-shadow: rgba(6, 182, 212, 0.25);
+            --card-gradient: linear-gradient(135deg, #22d3ee, #0891b2);
+            --icon-shadow: rgba(6, 182, 212, 0.45);
+        }
+
+        .card-servicios {
+            --card-color: #ef4444;
+            --card-glow: rgba(239, 68, 68, 0.28);
+            --card-shadow: rgba(239, 68, 68, 0.25);
+            --card-gradient: linear-gradient(135deg, #f87171, #dc2626);
+            --icon-shadow: rgba(239, 68, 68, 0.45);
+        }
+
+        .card-packs {
+            --card-color: #8b5cf6;
+            --card-glow: rgba(139, 92, 246, 0.28);
+            --card-shadow: rgba(139, 92, 246, 0.25);
+            --card-gradient: linear-gradient(135deg, #a78bfa, #7c3aed);
+            --icon-shadow: rgba(139, 92, 246, 0.45);
+        }
+
+        .card-caja {
+            --card-color: #14b8a6;
+            --card-glow: rgba(20, 184, 166, 0.28);
+            --card-shadow: rgba(20, 184, 166, 0.25);
+            --card-gradient: linear-gradient(135deg, #2dd4bf, #0f766e);
+            --icon-shadow: rgba(20, 184, 166, 0.45);
+        }
+
+        .card-finanzas {
+            --card-color: #f97316;
+            --card-glow: rgba(249, 115, 22, 0.28);
+            --card-shadow: rgba(249, 115, 22, 0.25);
+            --card-gradient: linear-gradient(135deg, #fb923c, #c2410c);
+            --icon-shadow: rgba(249, 115, 22, 0.45);
+        }
+
+        .card-personal {
+            --card-color: #3b82f6;
+            --card-glow: rgba(59, 130, 246, 0.28);
+            --card-shadow: rgba(59, 130, 246, 0.25);
+            --card-gradient: linear-gradient(135deg, #60a5fa, #1d4ed8);
+            --icon-shadow: rgba(59, 130, 246, 0.45);
+        }
+
+        .card-proveedores {
+            --card-color: #d97706;
+            --card-glow: rgba(217, 119, 6, 0.28);
+            --card-shadow: rgba(217, 119, 6, 0.25);
+            --card-gradient: linear-gradient(135deg, #f59e0b, #92400e);
+            --icon-shadow: rgba(217, 119, 6, 0.45);
+        }
+
+        /* Modals Modern */
+        .dash-modal .modal-content {
+            background: #0f1c36;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .dash-modal .modal-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 1.25rem 1.5rem;
+        }
+
+        .dash-modal .modal-body {
+            padding: 1.5rem;
+        }
+
+        .dash-modal .btn-close {
+            filter: invert(1);
+        }
+
+        .choice-card-btn {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            width: 100%;
+            text-align: left;
+        }
+
+        .choice-card-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        .choice-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        @@media (max-width: 768px) {
+            .dash-topbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .dash-user-controls {
+                justify-content: space-between;
+            }
+            .hero-banner {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .color-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+}
+
+<div class="dashboard-container">
+    <!-- Top Bar -->
+    <header class="dash-topbar">
+        <a class="dash-brand" asp-controller="Menu" asp-action="Menu">
+            <div class="dash-brand-icon">
+                <i class="bi bi-wrench-adjustable-circle-fill"></i>
+            </div>
+            <div class="dash-brand-text">
+                Taller<span>+</span>
+                <small>Sistema de Control y Taller</small>
+            </div>
         </a>
-        <div class="dashboard-account">
-            <span class="cash-status @(cajaAbierta ? "is-open" : "is-closed")">
-                <span class="status-dot" aria-hidden="true"></span>
-                Caja @(cajaAbierta ? "abierta" : "cerrada")
+
+        <div class="dash-user-controls">
+            <!-- Estado de Caja -->
+            <span class="cash-pill @(cajaAbierta ? "is-open" : "is-closed")">
+                <span class="pulse-dot"></span>
+                @(cajaAbierta ? "Caja Abierta" : "Caja Cerrada")
             </span>
-            <span class="dashboard-clock"><i class="bi bi-clock" aria-hidden="true"></i><span id="liveClock"></span></span>
-            <span class="dashboard-user"><i class="bi bi-person-circle" aria-hidden="true"></i>@usuario</span>
-            <form asp-controller="Menu" asp-action="Logout" method="post">
+
+            @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor") || User.IsInRole("Cajero"))
+            {
+                <form asp-controller="CajaDiaria" asp-action="@(cajaAbierta ? "CerrarCaja" : "AbrirCaja")" method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm @(cajaAbierta ? "btn-outline-danger" : "btn-warning") fw-semibold" title="@(cajaAbierta ? "Cerrar la caja actual" : "Abrir una nueva caja diaria")">
+                        <i class="bi @(cajaAbierta ? "bi-lock-fill" : "bi-unlock-fill") me-1"></i>
+                        @(cajaAbierta ? "Cerrar Caja" : "Abrir Caja")
+                    </button>
+                </form>
+            }
+
+            <!-- Reloj en Vivo -->
+            <div class="live-clock-badge">
+                <i class="bi bi-clock"></i>
+                <span id="liveClockDisplay">--:--:--</span>
+            </div>
+
+            <!-- Usuario y Rol -->
+            <div class="user-chip">
+                <i class="bi bi-person-circle text-info"></i>
+                <span>@usuario</span>
+                <span class="user-chip-role">@rol</span>
+            </div>
+
+            <!-- Logout -->
+            <form asp-controller="Menu" asp-action="Logout" method="post" class="m-0">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Salir
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Cerrar Sesión">
+                    <i class="bi bi-box-arrow-right"></i>
                 </button>
             </form>
         </div>
     </header>
 
-    <div class="dashboard-content">
-        <section class="dashboard-welcome" aria-labelledby="dashboardTitle">
-            <div>
-                <p class="dashboard-eyebrow">PANEL DE TRABAJO</p>
-                <h1 id="dashboardTitle">Hola, @usuario</h1>
-                <p>Accede a las tareas y registros de tu taller.</p>
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+        <div class="hero-title-group">
+            <h1 id="greetingMsg">¡Hola, @usuario!</h1>
+            <p>Selecciona una opción para gestionar las operaciones y servicios de tu taller.</p>
+        </div>
+        <div class="hero-actions">
+            <button type="button" class="btn btn-primary btn-action-hero" data-bs-toggle="modal" data-bs-target="#modalCrearRapido">
+                <i class="bi bi-plus-circle-fill fs-5"></i>
+                <span>+ Crear Registro</span>
+            </button>
+            <a class="btn btn-outline-light btn-action-hero" asp-controller="Menu" asp-action="Orden">
+                <i class="bi bi-list-check"></i>
+                <span>Ver Órdenes</span>
+            </a>
+        </div>
+    </section>
+
+    @if (TempData["SuccessMessage"] is string mensaje)
+    {
+        <div class="dashboard-content mb-3">
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@mensaje
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
             </div>
-            <div class="dashboard-actions">
-                <form asp-controller="CajaDiaria" asp-action="@(cajaAbierta ? "CerrarCaja" : "AbrirCaja")" method="post">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn @(cajaAbierta ? "btn-outline-danger" : "btn-warning")">
-                        <i class="bi @(cajaAbierta ? "bi-lock" : "bi-unlock") me-1" aria-hidden="true"></i>
-                        @(cajaAbierta ? "Cerrar caja" : "Abrir caja")
-                    </button>
-                </form>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#chooseTypeModal">
-                    <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Crear
-                </button>
+        </div>
+    }
+
+    <!-- Contenido y Cuadrículas de Módulos -->
+    <main class="dashboard-content">
+
+        <!-- SECCIÓN 1: OPERACIONES PRINCIPALES -->
+        <section class="category-block">
+            <div class="category-header">
+                <span class="category-badge-pill" style="color: #60a5fa; border-color: rgba(96,165,250,0.3);">Flujo Diario</span>
+                <h2>Operación y Servicios al Cliente</h2>
+                <p class="ms-auto d-none d-md-block">Recepción, cotizaciones, historial y parque vehicular</p>
+            </div>
+            <div class="color-grid">
+                <!-- Órdenes de Trabajo -->
+                <a class="color-card card-orden" asp-controller="Menu" asp-action="Orden">
+                    <div class="color-card-top">
+                        <div class="color-card-icon">
+                            <i class="bi bi-clipboard2-check-fill"></i>
+                        </div>
+                        <div class="color-card-arrow">
+                            <i class="bi bi-arrow-right-short"></i>
+                        </div>
+                    </div>
+                    <div class="color-card-info">
+                        <h3>Órdenes de Trabajo</h3>
+                        <p>Gestión de órdenes activas, asignación a mecánicos, diagnósticos, pagos y entregas.</p>
+                    </div>
+                </a>
+
+                <!-- Presupuestos -->
+                <a class="color-card card-presupuesto" asp-controller="Menu" asp-action="Presupuesto">
+                    <div class="color-card-top">
+                        <div class="color-card-icon">
+                            <i class="bi bi-receipt-cutoff"></i>
+                        </div>
+                        <div class="color-card-arrow">
+                            <i class="bi bi-arrow-right-short"></i>
+                        </div>
+                    </div>
+                    <div class="color-card-info">
+                        <h3>Presupuestos</h3>
+                        <p>Elaboración de cotizaciones para clientes, cálculo de costos y conversión directa a orden.</p>
+                    </div>
+                </a>
+
+                <!-- Clientes -->
+                <a class="color-card card-clientes" asp-controller="Menu" asp-action="Clientes">
+                    <div class="color-card-top">
+                        <div class="color-card-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div class="color-card-arrow">
+                            <i class="bi bi-arrow-right-short"></i>
+                        </div>
+                    </div>
+                    <div class="color-card-info">
+                        <h3>Clientes</h3>
+                        <p>Directorio de propietarios, contactos telefónicos, cédula y vehículos vinculados.</p>
+                    </div>
+                </a>
+
+                <!-- Vehículos -->
+                <a class="color-card card-vehiculos" asp-controller="Menu" asp-action="Vehiculos">
+                    <div class="color-card-top">
+                        <div class="color-card-icon">
+                            <i class="bi bi-car-front-fill"></i>
+                        </div>
+                        <div class="color-card-arrow">
+                            <i class="bi bi-arrow-right-short"></i>
+                        </div>
+                    </div>
+                    <div class="color-card-info">
+                        <h3>Vehículos</h3>
+                        <p>Parque automotriz registrado, matrículas, marcas, modelos y estado mecánico.</p>
+                    </div>
+                </a>
             </div>
         </section>
 
-        @if (TempData["SuccessMessage"] is string mensaje)
+        <!-- SECCIÓN 2: TALLER Y CATÁLOGOS -->
+        <section class="category-block">
+            <div class="category-header">
+                <span class="category-badge-pill" style="color: #22d3ee; border-color: rgba(34,211,238,0.3);">Recursos</span>
+                <h2>Inventario, Tarifas y Paquetes</h2>
+                <p class="ms-auto d-none d-md-block">Piezas, repuestos, precios y catálogo de servicios</p>
+            </div>
+            <div class="color-grid">
+                <!-- Inventario / Repuestos -->
+                <a class="color-card card-inventario" asp-controller="Menu" asp-action="Productos">
+                    <div class="color-card-top">
+                        <div class="color-card-icon">
+                            <i class="bi bi-box-seam-fill"></i>
+                        </div>
+                        <div class="color-card-arrow">
+                            <i class="bi bi-arrow-right-short"></i>
+                        </div>
+                    </div>
+                    <div class="color-card-info">
+                        <h3>Inventario de Repuestos</h3>
+                        <p>Catálogo de piezas, control de stock, costo de adquisición, precios de venta y marcas.</p>
+                    </div>
+                </a>
+
+                <!-- Servicios -->
+                <a class="color-card card-servicios" asp-controller="Menu" asp-action="Servicios">
+                    <div class="color-card-top">
+                        <div class="color-card-icon">
+                            <i class="bi bi-tools"></i>
+                        </div>
+                        <div class="color-card-arrow">
+                            <i class="bi bi-arrow-right-short"></i>
+                        </div>
+                    </div>
+                    <div class="color-card-info">
+                        <h3>Servicios y Mano de Obra</h3>
+                        <p>Mantenimientos preventivos, reparaciones especializadas y tarifas de mano de obra.</p>
+                    </div>
+                </a>
+
+                <!-- Packs -->
+                <a class="color-card card-packs" asp-controller="Menu" asp-action="Packs">
+                    <div class="color-card-top">
+                        <div class="color-card-icon">
+                            <i class="bi bi-boxes"></i>
+                        </div>
+                        <div class="color-card-arrow">
+                            <i class="bi bi-arrow-right-short"></i>
+                        </div>
+                    </div>
+                    <div class="color-card-info">
+                        <h3>Packs de Reparación</h3>
+                        <p>Combinaciones paquetizadas de servicios y productos con precio cerrado para cotizaciones.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 3: CONTROL, FINANZAS Y ADMINISTRACIÓN -->
+        @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor") || User.IsInRole("Cajero"))
         {
-            <div class="alert alert-info" role="status">@mensaje</div>
+            <section class="category-block">
+                <div class="category-header">
+                    <span class="category-badge-pill" style="color: #fb923c; border-color: rgba(251,146,60,0.3);">Administración</span>
+                    <h2>Caja, Finanzas y Personal</h2>
+                    <p class="ms-auto d-none d-md-block">Arqueos, balances, trazabilidad financiera y accesos</p>
+                </div>
+                <div class="color-grid">
+                    <!-- Caja Diaria -->
+                    <a class="color-card card-caja" asp-controller="Menu" asp-action="CajaDiaria">
+                        <div class="color-card-top">
+                            <div class="color-card-icon">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                            <div class="color-card-arrow">
+                                <i class="bi bi-arrow-right-short"></i>
+                            </div>
+                        </div>
+                        <div class="color-card-info">
+                            <h3>Caja Diaria</h3>
+                            <p>Consulta de aperturas, cierres de turno, ingresos por órdenes y arqueos de caja.</p>
+                        </div>
+                    </a>
+
+                    @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
+                    {
+                        <!-- Finanzas / Reportes -->
+                        <a class="color-card card-finanzas" asp-controller="Menu" asp-action="Administracion">
+                            <div class="color-card-top">
+                                <div class="color-card-icon">
+                                    <i class="bi bi-graph-up-arrow"></i>
+                                </div>
+                                <div class="color-card-arrow">
+                                    <i class="bi bi-arrow-right-short"></i>
+                                </div>
+                            </div>
+                            <div class="color-card-info">
+                                <h3>Finanzas y Reportes</h3>
+                                <p>Resumen mensual, balance ingresos vs egresos y trazabilidad global de transacciones.</p>
+                            </div>
+                        </a>
+                    }
+
+                    @if (User.IsInRole("Administrador"))
+                    {
+                        <!-- Personal / Empleados -->
+                        <a class="color-card card-personal" asp-controller="Menu" asp-action="Empleados">
+                            <div class="color-card-top">
+                                <div class="color-card-icon">
+                                    <i class="bi bi-person-badge-fill"></i>
+                                </div>
+                                <div class="color-card-arrow">
+                                    <i class="bi bi-arrow-right-short"></i>
+                                </div>
+                            </div>
+                            <div class="color-card-info">
+                                <h3>Personal y Empleados</h3>
+                                <p>Administración del equipo de trabajo, mecánicos, cajeros, credenciales y roles.</p>
+                            </div>
+                        </a>
+
+                        <!-- Proveedores -->
+                        <a class="color-card card-proveedores" asp-controller="Menu" asp-action="Proveedores">
+                            <div class="color-card-top">
+                                <div class="color-card-icon">
+                                    <i class="bi bi-truck-front-fill"></i>
+                                </div>
+                                <div class="color-card-arrow">
+                                    <i class="bi bi-arrow-right-short"></i>
+                                </div>
+                            </div>
+                            <div class="color-card-info">
+                                <h3>Proveedores</h3>
+                                <p>Registro de empresas distribuidoras, compras de repuestos e historial de suministros.</p>
+                            </div>
+                        </a>
+                    }
+                </div>
+            </section>
         }
 
-        <section class="dashboard-section" aria-labelledby="operationsTitle">
-            <div class="dashboard-section-heading">
-                <div>
-                    <h2 id="operationsTitle">Operación del taller</h2>
-                    <p>Gestiona el trabajo diario y el seguimiento de cada vehículo.</p>
-                </div>
-            </div>
-            <div class="module-grid">
-                <a class="module-card module-card-featured" asp-controller="Menu" asp-action="Orden">
-                    <span class="module-icon"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span>
-                    <span class="module-copy"><strong>Órdenes de trabajo</strong><small>Consulta el avance y las entregas del taller.</small></span>
-                    <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                </a>
-                <a class="module-card" asp-controller="Menu" asp-action="Presupuesto">
-                    <span class="module-icon"><i class="bi bi-receipt" aria-hidden="true"></i></span>
-                    <span class="module-copy"><strong>Presupuestos</strong><small>Prepara y consulta cotizaciones.</small></span>
-                    <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                </a>
-                <a class="module-card" asp-controller="Menu" asp-action="Clientes">
-                    <span class="module-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
-                    <span class="module-copy"><strong>Clientes</strong><small>Consulta y actualiza sus datos.</small></span>
-                    <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                </a>
-                <a class="module-card" asp-controller="Menu" asp-action="Vehiculos">
-                    <span class="module-icon"><i class="bi bi-car-front" aria-hidden="true"></i></span>
-                    <span class="module-copy"><strong>Vehículos</strong><small>Revisa los vehículos registrados.</small></span>
-                    <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                </a>
-            </div>
-        </section>
-
-        <section class="dashboard-section" aria-labelledby="catalogTitle">
-            <div class="dashboard-section-heading">
-                <div>
-                    <h2 id="catalogTitle">Catálogos y recursos</h2>
-                    <p>Administra los productos y servicios disponibles.</p>
-                </div>
-            </div>
-            <div class="module-grid module-grid-compact">
-                <a class="module-card" asp-controller="Menu" asp-action="Productos">
-                    <span class="module-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
-                    <span class="module-copy"><strong>Inventario</strong><small>Productos y repuestos.</small></span>
-                    <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                </a>
-                <a class="module-card" asp-controller="Menu" asp-action="Servicios">
-                    <span class="module-icon"><i class="bi bi-tools" aria-hidden="true"></i></span>
-                    <span class="module-copy"><strong>Servicios</strong><small>Trabajos y tarifas.</small></span>
-                    <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                </a>
-                <a class="module-card" asp-controller="Menu" asp-action="Packs">
-                    <span class="module-icon"><i class="bi bi-boxes" aria-hidden="true"></i></span>
-                    <span class="module-copy"><strong>Packs</strong><small>Combina servicios y productos.</small></span>
-                    <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                </a>
-                @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
-                {
-                    <a class="module-card" asp-controller="Menu" asp-action="Administracion">
-                        <span class="module-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
-                        <span class="module-copy"><strong>Finanzas</strong><small>Consulta los movimientos del negocio.</small></span>
-                        <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                    </a>
-                }
-                @if (User.IsInRole("Cajero"))
-                {
-                    <a class="module-card" asp-controller="Menu" asp-action="CajaDiaria">
-                        <span class="module-icon"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
-                        <span class="module-copy"><strong>Caja diaria</strong><small>Consulta cierres y movimientos.</small></span>
-                        <i class="bi bi-arrow-up-right module-arrow" aria-hidden="true"></i>
-                    </a>
-                }
-            </div>
-        </section>
-        <footer class="dashboard-footer">Taller+ <span aria-hidden="true">·</span> Gestión operativa</footer>
-    </div>
+    </main>
 </div>
 
-<div class="modal fade" id="chooseTypeModal" tabindex="-1" aria-labelledby="chooseTypeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
+<!-- MODAL: + Crear Rápido -->
+<div class="modal fade dash-modal" id="modalCrearRapido" tabindex="-1" aria-labelledby="modalCrearLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="chooseTypeModalLabel">¿Qué deseas crear?</h2>
+                <h5 class="modal-title fw-bold" id="modalCrearLabel">
+                    <i class="bi bi-plus-circle-fill text-primary me-2"></i>¿Qué deseas registrar?
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Elige el tipo de registro para continuar.</p>
+                <p class="text-secondary small mb-3">Selecciona el módulo en el que deseas ingresar información:</p>
                 <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-primary" id="btnCreateOrder"><i class="bi bi-clipboard2-check me-2" aria-hidden="true"></i>Orden de trabajo</button>
-                    <button type="button" class="btn btn-outline-primary" id="btnCreatePresupuesto"><i class="bi bi-receipt me-2" aria-hidden="true"></i>Presupuesto</button>
+                    <!-- Opción 1: Orden -->
+                    <button type="button" class="choice-card-btn" id="btnOptOrden">
+                        <div class="choice-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                            <i class="bi bi-clipboard2-check-fill"></i>
+                        </div>
+                        <div>
+                            <strong>Orden de Trabajo</strong>
+                            <div class="text-secondary small">Recepción y diagnóstico para un vehículo</div>
+                        </div>
+                        <i class="bi bi-chevron-right ms-auto text-secondary"></i>
+                    </button>
+
+                    <!-- Opción 2: Presupuesto -->
+                    <button type="button" class="choice-card-btn" id="btnOptPresupuesto">
+                        <div class="choice-icon" style="background: linear-gradient(135deg, #34d399, #059669);">
+                            <i class="bi bi-receipt-cutoff"></i>
+                        </div>
+                        <div>
+                            <strong>Presupuesto</strong>
+                            <div class="text-secondary small">Cotización estimada previa al cliente</div>
+                        </div>
+                        <i class="bi bi-chevron-right ms-auto text-secondary"></i>
+                    </button>
+
+                    <!-- Opción 3: Cliente -->
+                    <a asp-controller="Cliente" asp-action="Crear" class="choice-card-btn">
+                        <div class="choice-icon" style="background: linear-gradient(135deg, #818cf8, #4f46e5);">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </div>
+                        <div>
+                            <strong>Nuevo Cliente</strong>
+                            <div class="text-secondary small">Registrar un nuevo cliente en el sistema</div>
+                        </div>
+                        <i class="bi bi-chevron-right ms-auto text-secondary"></i>
+                    </a>
+
+                    <!-- Opción 4: Vehículo -->
+                    <a asp-controller="Vehiculo" asp-action="SeleccionarCliente" class="choice-card-btn">
+                        <div class="choice-icon" style="background: linear-gradient(135deg, #fbbf24, #d97706);">
+                            <i class="bi bi-car-front-fill"></i>
+                        </div>
+                        <div>
+                            <strong>Nuevo Vehículo</strong>
+                            <div class="text-secondary small">Registrar y asignar vehículo a cliente</div>
+                        </div>
+                        <i class="bi bi-chevron-right ms-auto text-secondary"></i>
+                    </a>
+
+                    @if (User.IsInRole("Administrador") || User.IsInRole("Supervisor"))
+                    {
+                        <!-- Opción 5: Producto -->
+                        <a asp-controller="Producto" asp-action="Crear" class="choice-card-btn">
+                            <div class="choice-icon" style="background: linear-gradient(135deg, #22d3ee, #0891b2);">
+                                <i class="bi bi-box-seam-fill"></i>
+                            </div>
+                            <div>
+                                <strong>Nuevo Producto / Repuesto</strong>
+                                <div class="text-secondary small">Agregar producto al inventario</div>
+                            </div>
+                            <i class="bi bi-chevron-right ms-auto text-secondary"></i>
+                        </a>
+                    }
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="chooseClientOrderModal" tabindex="-1" aria-labelledby="chooseClientOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
+<!-- MODAL PASO ORDEN: Cliente existente o nuevo -->
+<div class="modal fade dash-modal" id="modalPasoOrden" tabindex="-1" aria-labelledby="modalPasoOrdenLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="chooseClientOrderModalLabel">Nueva orden</h2>
+                <h5 class="modal-title fw-bold" id="modalPasoOrdenLabel">
+                    <i class="bi bi-clipboard2-check text-primary me-2"></i>Nueva Orden: Cliente
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Primero, indica a quién pertenece el vehículo.</p>
+                <p class="text-secondary small mb-3">Indica si el propietario del vehículo ya está registrado:</p>
                 <div class="d-grid gap-2">
-                    <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Orden" class="btn btn-primary"><i class="bi bi-person-plus me-2" aria-hidden="true"></i>Registrar cliente</a>
-                    <a asp-controller="Orden" asp-action="SeleccionarClienteOrden" class="btn btn-outline-secondary"><i class="bi bi-person-check me-2" aria-hidden="true"></i>Elegir cliente existente</a>
+                    <a asp-controller="Orden" asp-action="SeleccionarClienteOrden" class="btn btn-primary py-2 fw-semibold">
+                        <i class="bi bi-search me-2"></i>Seleccionar Cliente Existente
+                    </a>
+                    <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Orden" class="btn btn-outline-light py-2 fw-semibold">
+                        <i class="bi bi-person-plus me-2"></i>Registrar Nuevo Cliente
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="chooseClientPresModal" tabindex="-1" aria-labelledby="chooseClientPresModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
+<!-- MODAL PASO PRESUPUESTO: Cliente existente o nuevo -->
+<div class="modal fade dash-modal" id="modalPasoPresupuesto" tabindex="-1" aria-labelledby="modalPasoPresupuestoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="chooseClientPresModalLabel">Nuevo presupuesto</h2>
+                <h5 class="modal-title fw-bold" id="modalPasoPresupuestoLabel">
+                    <i class="bi bi-receipt text-success me-2"></i>Nuevo Presupuesto: Cliente
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Primero, indica a quién pertenece el vehículo.</p>
+                <p class="text-secondary small mb-3">Indica si el propietario del vehículo ya está registrado:</p>
                 <div class="d-grid gap-2">
-                    <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Presupuesto" class="btn btn-primary"><i class="bi bi-person-plus me-2" aria-hidden="true"></i>Registrar cliente</a>
-                    <a asp-controller="Presupuesto" asp-action="SeleccionarClientePresupuesto" class="btn btn-outline-secondary"><i class="bi bi-person-check me-2" aria-hidden="true"></i>Elegir cliente existente</a>
+                    <a asp-controller="Presupuesto" asp-action="SeleccionarClientePresupuesto" class="btn btn-success py-2 fw-semibold">
+                        <i class="bi bi-search me-2"></i>Seleccionar Cliente Existente
+                    </a>
+                    <a asp-controller="Cliente" asp-action="Crear" asp-route-redirigirA="Presupuesto" class="btn btn-outline-light py-2 fw-semibold">
+                        <i class="bi bi-person-plus me-2"></i>Registrar Nuevo Cliente
+                    </a>
                 </div>
             </div>
         </div>
@@ -187,24 +999,46 @@
 
 @section Scripts {
     <script>
-        function updateClock() {
+        // Actualización de reloj en vivo
+        function tickClock() {
             const now = new Date();
-            const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            document.getElementById('liveClock').textContent = now.toLocaleString('es-NI', options);
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+            const timeStr = now.toLocaleTimeString('es-NI', { hour12: false });
+            const dateStr = now.toLocaleDateString('es-NI', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const el = document.getElementById('liveClockDisplay');
+            if (el) el.textContent = `${dateStr} ${timeStr}`;
 
-        const chooseTypeModal = new bootstrap.Modal(document.getElementById('chooseTypeModal'));
-        const orderModal = new bootstrap.Modal(document.getElementById('chooseClientOrderModal'));
-        const presupuestoModal = new bootstrap.Modal(document.getElementById('chooseClientPresModal'));
-        document.getElementById('btnCreateOrder').addEventListener('click', () => {
-            chooseTypeModal.hide();
-            orderModal.show();
-        });
-        document.getElementById('btnCreatePresupuesto').addEventListener('click', () => {
-            chooseTypeModal.hide();
-            presupuestoModal.show();
+            // Saludo dinámico
+            const h = now.getHours();
+            let saludo = '¡Buenas noches';
+            if (h >= 5 && h < 12) saludo = '¡Buenos días';
+            else if (h >= 12 && h < 19) saludo = '¡Buenas tardes';
+            const grEl = document.getElementById('greetingMsg');
+            if (grEl) grEl.textContent = `${saludo}, @usuario!`;
+        }
+        setInterval(tickClock, 1000);
+        tickClock();
+
+        // Control de Modales
+        document.addEventListener('DOMContentLoaded', function () {
+            const elCrear = document.getElementById('modalCrearRapido');
+            const elOrd = document.getElementById('modalPasoOrden');
+            const elPre = document.getElementById('modalPasoPresupuesto');
+
+            if (typeof bootstrap !== 'undefined' && elCrear && elOrd && elPre) {
+                const modalCrear = new bootstrap.Modal(elCrear);
+                const modalPasoOrd = new bootstrap.Modal(elOrd);
+                const modalPasoPre = new bootstrap.Modal(elPre);
+
+                document.getElementById('btnOptOrden')?.addEventListener('click', () => {
+                    modalCrear.hide();
+                    modalPasoOrd.show();
+                });
+
+                document.getElementById('btnOptPresupuesto')?.addEventListener('click', () => {
+                    modalCrear.hide();
+                    modalPasoPre.show();
+                });
+            }
         });
     </script>
 }
