@@ -1,4 +1,4 @@
-@model List<syswb_Taller.Models.Proveedor>
+﻿@model List<syswb_Taller.Models.Proveedor>
 @using System.Globalization
 @removeTagHelper "Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers"
 @{
@@ -54,15 +54,6 @@
         }
     </style>
 }
-
-<div class="d-flex justify-content-end mb-3">
-    <a asp-controller="Menu" asp-action="Menu"
-       class="btn btn-outline-primary btn-lg shadow-sm d-flex align-items-center gap-2">
-        <i class="bi bi-house-door-fill fs-5"></i>
-        <span>Menú Principal</span>
-    </a>
-</div>
-
 
 <h2 class="mb-4"><i class="bi bi-truck me-2"></i>Proveedores</h2>
 
