@@ -22,6 +22,12 @@ RUN dotnet publish "syswb_Taller.csproj" -c Release -o /app/publish /p:UseAppHos
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
+# Ajustar OpenSSL SECLEVEL a 1 para permitir conexion TLS con SQL Server
+USER root
+RUN sed -i 's/DEFAULT@SECLEVEL=2/DEFAULT@SECLEVEL=1/g' /etc/ssl/openssl.cnf || true && \
+    sed -i 's/CipherString = DEFAULT@SECLEVEL=2/CipherString = DEFAULT@SECLEVEL=1/g' /etc/ssl/openssl.cnf || true && \
+    sed -i 's/MinProtocol = TLSv1.2/MinProtocol = TLSv1/g' /etc/ssl/openssl.cnf || true
+
 # Puerto estandar que utilizan .NET 8 y Railway
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
