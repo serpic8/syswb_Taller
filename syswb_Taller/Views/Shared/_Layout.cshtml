@@ -46,20 +46,20 @@
                         <span class="brand-mark"><i class="bi bi-wrench-adjustable-circle-fill" aria-hidden="true"></i></span>
                         <div class="d-flex flex-column justify-content-center">
                             <span class="brand-text">Taller<span class="brand-accent">+</span></span>
-                            <small class="brand-subtext">Gestión operativa</small>
+                            <small class="brand-subtext d-none d-sm-block">Gestión operativa</small>
                         </div>
                     </a>
 
                     <!-- LADO DERECHO: ACCIONES (MENÚ, CAJA, USUARIO) -->
-                    <div class="d-flex align-items-center gap-2 gap-sm-3">
+                    <div class="d-flex align-items-center gap-1 gap-sm-2 gap-md-3">
                         <!-- Botón Menú Principal -->
                         <a asp-controller="Menu" asp-action="Menu" class="btn-nav-menu" title="Volver al Menú Principal">
                             <i class="bi bi-grid-fill"></i>
-                            <span>Menú</span>
+                            <span class="d-none d-sm-inline">Menú</span>
                         </a>
 
                         <!-- Píldora Estado de Caja -->
-                        <span class="status-caja-pill @(cajaAbierta ? "abierta" : "cerrada") d-none d-sm-inline-flex">
+                        <span class="status-caja-pill @(cajaAbierta ? "abierta" : "cerrada") d-none d-md-inline-flex">
                             <span class="status-dot"></span>
                             @(cajaAbierta ? "Caja Abierta" : "Caja Cerrada")
                         </span>
@@ -68,10 +68,10 @@
                         <div class="dropdown">
                             <button class="user-dropdown-btn dropdown-toggle" type="button" id="globalUserDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person-circle"></i>
-                                <span>@User.Identity?.Name</span>
+                                <span class="user-nav-name">@User.Identity?.Name</span>
                                 @if (!string.IsNullOrEmpty(role))
                                 {
-                                    <span class="user-role-tag">@role</span>
+                                    <span class="user-role-tag d-none d-lg-inline-block">@role</span>
                                 }
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end user-dropdown-menu" aria-labelledby="globalUserDropdown">
