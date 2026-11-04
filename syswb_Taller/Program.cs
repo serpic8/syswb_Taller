@@ -46,4 +46,11 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Login}/{action=Login}/{id?}");
 
+// Inicializar base de datos automáticamente (Railway / Docker)
+try
+{
+    syswb_Taller.DatabaseInitializer.Initialize(app.Services, app.Configuration, app.Environment.ContentRootPath);
+}
+catch { }
+
 app.Run();
