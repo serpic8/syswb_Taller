@@ -1,0 +1,23 @@
+name: Despliegue CI/CD a Railway
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Compilar y Desplegar en Railway
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Instalar Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: 3. Desplegar contenedor a Railway
+        run: railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
